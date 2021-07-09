@@ -16,8 +16,131 @@ CHIP Mux4Way16 {
     OUT out[16];
 
     PARTS:
-    Or (a=a, b=sel, out=w1);
-    Not (in=sel, out=w2);
-    Or (a=b, b=w2, out=w3);
-    And (a=w3, b=w1, out=out);
+
+    Not (in=sel[0], out=n0);
+    Not (in=sel[1], out=n1);
+
+    Or (a=sel[0], b=sel[1], out=m1);
+    Or (a=n0, b=sel[1], out=m2);
+    Or (a=sel[0], b=n1, out=m3);
+    Or (a=n0, b=n1, out=m4);
+
+    Or (a=a[0], b=m1, out=w0);
+    Or (a=a[1], b=m1, out=w1);
+    Or (a=a[2], b=m1, out=w2);
+    Or (a=a[3], b=m1, out=w3);
+    Or (a=a[4], b=m1, out=w4);
+    Or (a=a[5], b=m1, out=w5);
+    Or (a=a[6], b=m1, out=w6);
+    Or (a=a[7], b=m1, out=w7);
+    Or (a=a[8], b=m1, out=w8);
+    Or (a=a[9], b=m1, out=w9);
+    Or (a=a[10], b=m1, out=w10);
+    Or (a=a[11], b=m1, out=w11);
+    Or (a=a[12], b=m1, out=w12);
+    Or (a=a[13], b=m1, out=w13);
+    Or (a=a[14], b=m1, out=w14);
+    Or (a=a[15], b=m1, out=w15);
+
+    Or (a=b[0], b=m2, out=x0);
+    Or (a=b[1], b=m2, out=x1);
+    Or (a=b[2], b=m2, out=x2);
+    Or (a=b[3], b=m2, out=x3);
+    Or (a=b[4], b=m2, out=x4);
+    Or (a=b[5], b=m2, out=x5);
+    Or (a=b[6], b=m2, out=x6);
+    Or (a=b[7], b=m2, out=x7);
+    Or (a=b[8], b=m2, out=x8);
+    Or (a=b[9], b=m2, out=x9);
+    Or (a=b[10], b=m2, out=x10);
+    Or (a=b[11], b=m2, out=x11);
+    Or (a=b[12], b=m2, out=x12);
+    Or (a=b[13], b=m2, out=x13);
+    Or (a=b[14], b=m2, out=x14);
+    Or (a=b[15], b=m2, out=x15);
+
+    Or (a=c[0], b=m3, out=y0);
+    Or (a=c[1], b=m3, out=y1);
+    Or (a=c[2], b=m3, out=y2);
+    Or (a=c[3], b=m3, out=y3);
+    Or (a=c[4], b=m3, out=y4);
+    Or (a=c[5], b=m3, out=y5);
+    Or (a=c[6], b=m3, out=y6);
+    Or (a=c[7], b=m3, out=y7);
+    Or (a=c[8], b=m3, out=y8);
+    Or (a=c[9], b=m3, out=y9);
+    Or (a=c[10], b=m3, out=y10);
+    Or (a=c[11], b=m3, out=y11);
+    Or (a=c[12], b=m3, out=y12);
+    Or (a=c[13], b=m3, out=y13);
+    Or (a=c[14], b=m3, out=y14);
+    Or (a=c[15], b=m3, out=y15);
+
+    Or (a=d[0], b=m4, out=z0);
+    Or (a=d[1], b=m4, out=z1);
+    Or (a=d[2], b=m4, out=z2);
+    Or (a=d[3], b=m4, out=z3);
+    Or (a=d[4], b=m4, out=z4);
+    Or (a=d[5], b=m4, out=z5);
+    Or (a=d[6], b=m4, out=z6);
+    Or (a=d[7], b=m4, out=z7);
+    Or (a=d[8], b=m4, out=z8);
+    Or (a=d[9], b=m4, out=z9);
+    Or (a=d[10], b=m4, out=z10);
+    Or (a=d[11], b=m4, out=z11);
+    Or (a=d[12], b=m4, out=z12);
+    Or (a=d[13], b=m4, out=z13);
+    Or (a=d[14], b=m4, out=z14);
+    Or (a=d[15], b=m4, out=z15);
+
+    And (a=w0, b=x0, out=w0x0);
+    And (a=w1, b=x1, out=w1x1);
+    And (a=w2, b=x2, out=w2x2);
+    And (a=w3, b=x3, out=w3x3);
+    And (a=w4, b=x4, out=w4x4);
+    And (a=w5, b=x5, out=w5x5);
+    And (a=w6, b=x6, out=w6x6);
+    And (a=w7, b=x7, out=w7x7);
+    And (a=w8, b=x8, out=w8x8);
+    And (a=w9, b=x9, out=w9x9);
+    And (a=w10, b=x10, out=w10x10);
+    And (a=w11, b=x11, out=w11x11);
+    And (a=w12, b=x12, out=w12x12);
+    And (a=w13, b=x13, out=w13x13);
+    And (a=w14, b=x14, out=w14x14);
+    And (a=w15, b=x15, out=w15x15);
+    
+    And (a=w0x0, b=y0, out=w0x0y0);
+    And (a=w1x1, b=y1, out=w1x1y1);
+    And (a=w2x2, b=y2, out=w2x2y2);
+    And (a=w3x3, b=y3, out=w3x3y3);
+    And (a=w4x4, b=y4, out=w4x4y4);
+    And (a=w5x5, b=y5, out=w5x5y5);
+    And (a=w6x6, b=y6, out=w6x6y6);
+    And (a=w7x7, b=y7, out=w7x7y7);
+    And (a=w8x8, b=y8, out=w8x8y8);
+    And (a=w9x9, b=y9, out=w9x9y9);
+    And (a=w10x10, b=y10, out=w10x10y10);
+    And (a=w11x11, b=y11, out=w11x11y11);
+    And (a=w12x12, b=y12, out=w12x12y12);
+    And (a=w13x13, b=y13, out=w13x13y13);
+    And (a=w14x14, b=y14, out=w14x14y14);
+    And (a=w15x15, b=y15, out=w15x15y15);
+
+    And (a=w0x0y0, b=z0, out=out[0]);
+    And (a=w1x1y1, b=z1, out=out[1]);
+    And (a=w2x2y2, b=z2, out=out[2]);
+    And (a=w3x3y3, b=z3, out=out[3]);
+    And (a=w4x4y4, b=z4, out=out[4]);
+    And (a=w5x5y5, b=z5, out=out[5]);
+    And (a=w6x6y6, b=z6, out=out[6]);
+    And (a=w7x7y7, b=z7, out=out[7]);
+    And (a=w8x8y8, b=z8, out=out[8]);
+    And (a=w9x9y9, b=z9, out=out[9]);
+    And (a=w10x10y10, b=z10, out=out[10]);
+    And (a=w11x11y11, b=z11, out=out[11]);
+    And (a=w12x12y12, b=z12, out=out[12]);
+    And (a=w13x13y13, b=z13, out=out[13]);
+    And (a=w14x14y14, b=z14, out=out[14]);
+    And (a=w15x15y15, b=z15, out=out[15]);
 }
