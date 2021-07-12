@@ -13,5 +13,82 @@ CHIP Inc16 {
     OUT out[16];
 
     PARTS:
-   // Put you code here:
+    Not (in=in[0], out=not0);
+    Not (in=in[0], out=out[0]);
+    And (a=in[0], b=in[0], out=c1);
+
+    Xor (a=in[1], b=c1, out=mid1);
+    Xor (a=in[1], b=c1, out=out[1]);
+    Not (in=mid1, out=notMid1);
+    And (a=c1, b=notMid1, out=c2);
+
+    Xor (a=in[2], b=c2, out=mid2);
+    Xor (a=in[2], b=c2, out=out[2]);
+    Not (in=mid2, out=notMid2);
+    And (a=c2, b=notMid2, out=c3);
+
+    Xor (a=in[3], b=c3, out=mid3);
+    Xor (a=in[3], b=c3, out=out[3]);
+    Not (in=mid3, out=notMid3);
+    And (a=c3, b=notMid3, out=c4);
+
+    Xor (a=in[4], b=c4, out=mid4);
+    Xor (a=in[4], b=c4, out=out[4]);
+    Not (in=mid4, out=notMid4);
+    And (a=c4, b=notMid4, out=c5);
+
+    Xor (a=in[5], b=c5, out=mid5);
+    Xor (a=in[5], b=c5, out=out[5]);
+    Not (in=mid5, out=notMid5);
+    And (a=c5, b=notMid5, out=c6);
+
+    Xor (a=in[6], b=c6, out=mid6);
+    Xor (a=in[6], b=c6, out=out[6]);
+    Not (in=mid6, out=notMid6);
+    And (a=c6, b=notMid6, out=c7);
+
+    Xor (a=in[7], b=c7, out=mid7);
+    Xor (a=in[7], b=c7, out=out[7]);
+    Not (in=mid7, out=notMid7);
+    And (a=c7, b=notMid7, out=c8);
+
+    Xor (a=in[8], b=c8, out=mid8);
+    Xor (a=in[8], b=c8, out=out[8]);
+    Not (in=mid8, out=notMid8);
+    And (a=c8, b=notMid8, out=c9);
+
+    Xor (a=in[9], b=c9, out=mid9);
+    Xor (a=in[9], b=c9, out=out[9]);
+    Not (in=mid9, out=notMid9);
+    And (a=c9, b=notMid9, out=c10);
+
+    Xor (a=in[10], b=c10, out=mid10);
+    Xor (a=in[10], b=c10, out=out[10]);
+    Not (in=mid10, out=notMid10);
+    And (a=c10, b=notMid10, out=c11);
+
+    Xor (a=in[11], b=c11, out=mid11);
+    Xor (a=in[11], b=c11, out=out[11]);
+    Not (in=mid11, out=notMid11);
+    And (a=c11, b=notMid11, out=c12);
+
+    Xor (a=in[12], b=c12, out=mid12);
+    Xor (a=in[12], b=c12, out=out[12]);
+    Not (in=mid12, out=notMid12);
+    And (a=c12, b=notMid12, out=c13);
+
+    Xor (a=in[13], b=c13, out=mid13);
+    Xor (a=in[13], b=c13, out=out[13]);
+    Not (in=mid13, out=notMid13);
+    And (a=c13, b=notMid13, out=c14);
+
+    Xor (a=in[14], b=c14, out=mid14);
+    Xor (a=in[14], b=c14, out=out[14]);
+    Not (in=mid14, out=notMid14);
+    And (a=c14, b=notMid14, out=c15);
+
+    Xor (a=in[15], b=c15, out=mid15);
+    Xor (a=in[15], b=c15, out=out[15]);
+    Not (in=mid15, out=notMid15);
+    And (a=c15, b=notMid15, out=c16);
 }
