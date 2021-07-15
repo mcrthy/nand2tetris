@@ -42,221 +42,31 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
+    // Zero 16-bit value
+    Not16 (in=x, out=notX);
+    And16 (a=x, b=notX, out=zero);
 
-    Not (in=zx, out=nzx);
-    Not (in=zy, out=nzy);
-    Not (in=f, out=nf);
+    Mux16 (a=x, b=zero, sel=zx, out=x0);
+    Mux16 (a=y, b=zero, sel=zy, out=y0);
 
-    // if zx == 1, set x = 0
-    And (a=x[0], b=nzx, out=zx0);
-    And (a=x[1], b=nzx, out=zx1);
-    And (a=x[2], b=nzx, out=zx2);
-    And (a=x[3], b=nzx, out=zx3);
-    And (a=x[4], b=nzx, out=zx4);
-    And (a=x[5], b=nzx, out=zx5);
-    And (a=x[6], b=nzx, out=zx6);
-    And (a=x[7], b=nzx, out=zx7);
-    And (a=x[8], b=nzx, out=zx8);
-    And (a=x[9], b=nzx, out=zx9);
-    And (a=x[10], b=nzx, out=zx10);
-    And (a=x[11], b=nzx, out=zx11);
-    And (a=x[12], b=nzx, out=zx12);
-    And (a=x[13], b=nzx, out=zx13);
-    And (a=x[14], b=nzx, out=zx14);
-    And (a=x[15], b=nzx, out=zx15);
+    Not16 (in=x0, out=x1);
+    Not16 (in=y0, out=y1);
 
-    // if nx == 1, set x = !x
-    Xor (a=zx0, b=nx, out=nx0);
-    Xor (a=zx1, b=nx, out=nx1);
-    Xor (a=zx2, b=nx, out=nx2);
-    Xor (a=zx3, b=nx, out=nx3);
-    Xor (a=zx4, b=nx, out=nx4);
-    Xor (a=zx5, b=nx, out=nx5);
-    Xor (a=zx6, b=nx, out=nx6);
-    Xor (a=zx7, b=nx, out=nx7);
-    Xor (a=zx8, b=nx, out=nx8);
-    Xor (a=zx9, b=nx, out=nx9);
-    Xor (a=zx10, b=nx, out=nx10);
-    Xor (a=zx11, b=nx, out=nx11);
-    Xor (a=zx12, b=nx, out=nx12);
-    Xor (a=zx13, b=nx, out=nx13);
-    Xor (a=zx14, b=nx, out=nx14);
-    Xor (a=zx15, b=nx, out=nx15);
+    Mux16 (a=x0, b=x1, sel=nx, out=x2);
+    Mux16 (a=y0, b=y1, sel=ny, out=y2);
 
-    // if zy == 1, set y = 0
-    And (a=y[0], b=nzy, out=zy0);
-    And (a=y[1], b=nzy, out=zy1);
-    And (a=y[2], b=nzy, out=zy2);
-    And (a=y[3], b=nzy, out=zy3);
-    And (a=y[4], b=nzy, out=zy4);
-    And (a=y[5], b=nzy, out=zy5);
-    And (a=y[6], b=nzy, out=zy6);
-    And (a=y[7], b=nzy, out=zy7);
-    And (a=y[8], b=nzy, out=zy8);
-    And (a=y[9], b=nzy, out=zy9);
-    And (a=y[10], b=nzy, out=zy10);
-    And (a=y[11], b=nzy, out=zy11);
-    And (a=y[12], b=nzy, out=zy12);
-    And (a=y[13], b=nzy, out=zy13);
-    And (a=y[14], b=nzy, out=zy14);
-    And (a=y[15], b=nzy, out=zy15);
+    And16 (a=x2, b=y2, out=fand);
+    Add16 (a=x2, b=y2, out=fadd);
 
-    // if ny == 1, set y = !y
-    Xor (a=zy0, b=ny, out=ny0);
-    Xor (a=zy1, b=ny, out=ny1);
-    Xor (a=zy2, b=ny, out=ny2);
-    Xor (a=zy3, b=ny, out=ny3);
-    Xor (a=zy4, b=ny, out=ny4);
-    Xor (a=zy5, b=ny, out=ny5);
-    Xor (a=zy6, b=ny, out=ny6);
-    Xor (a=zy7, b=ny, out=ny7);
-    Xor (a=zy8, b=ny, out=ny8);
-    Xor (a=zy9, b=ny, out=ny9);
-    Xor (a=zy10, b=ny, out=ny10);
-    Xor (a=zy11, b=ny, out=ny11);
-    Xor (a=zy12, b=ny, out=ny12);
-    Xor (a=zy13, b=ny, out=ny13);
-    Xor (a=zy14, b=ny, out=ny14);
-    Xor (a=zy15, b=ny, out=ny15);
+    Mux16 (a=fand, b=fadd, sel=f, out=f0);
 
-    // AND nx and ny
-    And (a = nx0, b=ny0, out=xy0);
-    And (a = nx1, b=ny1, out=xy1);
-    And (a = nx2, b=ny2, out=xy2);
-    And (a = nx3, b=ny3, out=xy3);
-    And (a = nx4, b=ny4, out=xy4);
-    And (a = nx5, b=ny5, out=xy5);
-    And (a = nx6, b=ny6, out=xy6);
-    And (a = nx7, b=ny7, out=xy7);
-    And (a = nx8, b=ny8, out=xy8);
-    And (a = nx9, b=ny9, out=xy9);
-    And (a = nx10, b=ny10, out=xy10);
-    And (a = nx11, b=ny11, out=xy11);
-    And (a = nx12, b=ny12, out=xy12);
-    And (a = nx13, b=ny13, out=xy13);
-    And (a = nx14, b=ny14, out=xy14);
-    And (a = nx15, b=ny15, out=xy15);
+    Not16 (in=f0, out=nf0);
 
-    // Add nx and ny
-    HalfAdder (a=nx0, b=ny0, sum=xPlusy0, carry=carry1);
-    FullAdder (a=carry1, b=nx1, c=ny1, sum=xPlusy1, carry=carry2);
-    FullAdder (a=carry2, b=nx2, c=ny2, sum=xPlusy2, carry=carry3);
-    FullAdder (a=carry3, b=nx3, c=ny3, sum=xPlusy3, carry=carry4);
-    FullAdder (a=carry4, b=nx4, c=ny4, sum=xPlusy4, carry=carry5);
-    FullAdder (a=carry5, b=nx5, c=ny5, sum=xPlusy5, carry=carry6);
-    FullAdder (a=carry6, b=nx6, c=ny6, sum=xPlusy6, carry=carry7);
-    FullAdder (a=carry7, b=nx7, c=ny7, sum=xPlusy7, carry=carry8);
-    FullAdder (a=carry8, b=nx8, c=ny8, sum=xPlusy8, carry=carry9);
-    FullAdder (a=carry9, b=nx9, c=ny9, sum=xPlusy9, carry=carry10);
-    FullAdder (a=carry10, b=nx10, c=ny10, sum=xPlusy10, carry=carry11);
-    FullAdder (a=carry11, b=nx11, c=ny11, sum=xPlusy11, carry=carry12);
-    FullAdder (a=carry12, b=nx12, c=ny12, sum=xPlusy12, carry=carry13);
-    FullAdder (a=carry13, b=nx13, c=ny13, sum=xPlusy13, carry=carry14);
-    FullAdder (a=carry14, b=nx14, c=ny14, sum=xPlusy14, carry=carry15);
-    FullAdder (a=carry15, b=nx15, c=ny15, sum=xPlusy15, carry=carry16);
+    Mux16 (a=f0, b=nf0, sel=no, out=out, out[15]=ng, out[0..7]=o0, out[8..15]=o1);
 
-    Or (a=f, b=xy0, out=xyMid0);
-    Or (a=f, b=xy1, out=xyMid1);
-    Or (a=f, b=xy2, out=xyMid2);
-    Or (a=f, b=xy3, out=xyMid3);
-    Or (a=f, b=xy4, out=xyMid4);
-    Or (a=f, b=xy5, out=xyMid5);
-    Or (a=f, b=xy6, out=xyMid6);
-    Or (a=f, b=xy7, out=xyMid7);
-    Or (a=f, b=xy8, out=xyMid8);
-    Or (a=f, b=xy9, out=xyMid9);
-    Or (a=f, b=xy10, out=xyMid10);
-    Or (a=f, b=xy11, out=xyMid11);
-    Or (a=f, b=xy12, out=xyMid12);
-    Or (a=f, b=xy13, out=xyMid13);
-    Or (a=f, b=xy14, out=xyMid14);
-    Or (a=f, b=xy15, out=xyMid15);
+    Or8Way (in=o0, out=o2);
+    Or8Way (in=o1, out=o3);
+    Or (a=o2, b=o3, out=o4);
+    Not (in=o4, out=zr);
 
-    Or (a=nf, b=xPlusy0, out=xPlusyMid0);
-    Or (a=nf, b=xPlusy1, out=xPlusyMid1);
-    Or (a=nf, b=xPlusy2, out=xPlusyMid2);
-    Or (a=nf, b=xPlusy3, out=xPlusyMid3);
-    Or (a=nf, b=xPlusy4, out=xPlusyMid4);
-    Or (a=nf, b=xPlusy5, out=xPlusyMid5);
-    Or (a=nf, b=xPlusy6, out=xPlusyMid6);
-    Or (a=nf, b=xPlusy7, out=xPlusyMid7);
-    Or (a=nf, b=xPlusy8, out=xPlusyMid8);
-    Or (a=nf, b=xPlusy9, out=xPlusyMid9);
-    Or (a=nf, b=xPlusy10, out=xPlusyMid10);
-    Or (a=nf, b=xPlusy11, out=xPlusyMid11);
-    Or (a=nf, b=xPlusy12, out=xPlusyMid12);
-    Or (a=nf, b=xPlusy13, out=xPlusyMid13);
-    Or (a=nf, b=xPlusy14, out=xPlusyMid14);
-    Or (a=nf, b=xPlusy15, out=xPlusyMid15);
-  
-    And (a=xyMid0, b=xPlusyMid0, out=res0);
-    And (a=xyMid1, b=xPlusyMid1, out=res1);
-    And (a=xyMid2, b=xPlusyMid2, out=res2);
-    And (a=xyMid3, b=xPlusyMid3, out=res3);
-    And (a=xyMid4, b=xPlusyMid4, out=res4);
-    And (a=xyMid5, b=xPlusyMid5, out=res5);
-    And (a=xyMid6, b=xPlusyMid6, out=res6);
-    And (a=xyMid7, b=xPlusyMid7, out=res7);
-    And (a=xyMid8, b=xPlusyMid8, out=res8);
-    And (a=xyMid9, b=xPlusyMid9, out=res9);
-    And (a=xyMid10, b=xPlusyMid10, out=res10);
-    And (a=xyMid11, b=xPlusyMid11, out=res11);
-    And (a=xyMid12, b=xPlusyMid12, out=res12);
-    And (a=xyMid13, b=xPlusyMid13, out=res13);
-    And (a=xyMid14, b=xPlusyMid14, out=res14);
-    And (a=xyMid15, b=xPlusyMid15, out=res15);
-   
-    Xor (a=res0, b=no, out=out[0]);
-    Xor (a=res1, b=no, out=out[1]);
-    Xor (a=res2, b=no, out=out[2]);
-    Xor (a=res3, b=no, out=out[3]);
-    Xor (a=res4, b=no, out=out[4]);
-    Xor (a=res5, b=no, out=out[5]);
-    Xor (a=res6, b=no, out=out[6]);
-    Xor (a=res7, b=no, out=out[7]);
-    Xor (a=res8, b=no, out=out[8]);
-    Xor (a=res9, b=no, out=out[9]);
-    Xor (a=res10, b=no, out=out[10]);
-    Xor (a=res11, b=no, out=out[11]);
-    Xor (a=res12, b=no, out=out[12]);
-    Xor (a=res13, b=no, out=out[13]);
-    Xor (a=res14, b=no, out=out[14]);
-    Xor (a=res15, b=no, out=out[15]);
-
-    Xor (a=res0, b=no, out=o0);
-    Xor (a=res1, b=no, out=o1);
-    Xor (a=res2, b=no, out=o2);
-    Xor (a=res3, b=no, out=o3);
-    Xor (a=res4, b=no, out=o4);
-    Xor (a=res5, b=no, out=o5);
-    Xor (a=res6, b=no, out=o6);
-    Xor (a=res7, b=no, out=o7);
-    Xor (a=res8, b=no, out=o8);
-    Xor (a=res9, b=no, out=o9);
-    Xor (a=res10, b=no, out=o10);
-    Xor (a=res11, b=no, out=o11);
-    Xor (a=res12, b=no, out=o12);
-    Xor (a=res13, b=no, out=o13);
-    Xor (a=res14, b=no, out=o14);
-    Xor (a=res15, b=no, out=o15);
-
-    Or (a=o0, b=o1, out=or0);
-    Or (a=or0, b=o2, out=or1);
-    Or (a=or1, b=o3, out=or2);
-    Or (a=or2, b=o4, out=or3);
-    Or (a=or3, b=o5, out=or4);
-    Or (a=or4, b=o6, out=or5);
-    Or (a=or5, b=o7, out=or6);
-    Or (a=or6, b=o8, out=or7);
-    Or (a=or7, b=o9, out=or8);
-    Or (a=or8, b=o10, out=or9);
-    Or (a=or9, b=o11, out=or10);
-    Or (a=or10, b=o12, out=or11);
-    Or (a=or11, b=o13, out=or12);
-    Or (a=or12, b=o14, out=or13);
-    Or (a=or13, b=o15, out=or14);
-
-    Not (in=or14, out=zr);
-
-    Xor (a=res15, b=no, out=ng);
 }
