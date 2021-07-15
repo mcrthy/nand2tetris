@@ -42,12 +42,9 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-    // Zero 16-bit value
-    Not16 (in=x, out=notX);
-    And16 (a=x, b=notX, out=zero);
-
-    Mux16 (a=x, b=zero, sel=zx, out=x0);
-    Mux16 (a=y, b=zero, sel=zy, out=y0);
+    
+    Mux16 (a=x, b[0..15]=false, sel=zx, out=x0);
+    Mux16 (a=y, b[0..15]=false, sel=zy, out=y0);
 
     Not16 (in=x0, out=x1);
     Not16 (in=y0, out=y1);
@@ -68,5 +65,4 @@ CHIP ALU {
     Or8Way (in=o1, out=o3);
     Or (a=o2, b=o3, out=o4);
     Not (in=o4, out=zr);
-
 }
