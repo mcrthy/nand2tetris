@@ -1,0 +1,1 @@
+C:\Users\Matt\Documents\code\nand2tetris\nand2tetris\projects\06\hack_assembler\target\debug\libhack_assembler.rlib: C:\Users\Matt\Documents\code\nand2tetris\nand2tetris\projects\06\hack_assembler\src\lib.rs
