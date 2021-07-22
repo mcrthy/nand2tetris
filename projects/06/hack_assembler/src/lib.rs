@@ -1,5 +1,7 @@
 use std::fs;
 use std::error::Error;
+use std::path::Path;
+use std::ffi::OsStr;
 
 pub struct Config {
   pub filename: String,
@@ -12,6 +14,18 @@ impl Config {
       }
 
       let filename = args[1].clone();
+
+      let extension = Path::new(&filename)
+        .extension()
+        .and_then(OsStr::to_str);
+
+      if let Some(e) = extension {
+        if e != "asm" {
+          return Err("file must have .asm extension");
+        }
+      } else {
+        return Err("no file extension");
+      }
   
       Ok(Config { filename })
   }
