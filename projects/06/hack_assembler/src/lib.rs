@@ -1,7 +1,8 @@
-use std::fs;
+use std::fs::File;
 use std::error::Error;
 use std::path::Path;
 use std::ffi::OsStr;
+use std::io::{self, BufRead};
 
 pub struct Config {
   pub filename: String,
@@ -32,7 +33,30 @@ impl Config {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let contents = fs::read_to_string(config.filename)?;
+  let file = File::open(config.filename)?;
+
+  let lines = io::BufReader::new(file).lines();
+
+  for line in lines {
+    if let Ok(ln) = line {
+
+      let mut result = &ln[..];
+
+      if let Some(index) = ln.find("//") {
+        if let Some (instruction) = ln.get(..index) {
+          result = instruction;
+        }
+      }
+
+      if result.len() > 0 {
+        result = result.trim();
+      }
+
+      if result == "" {
+        continue
+      }
+    }
+  }
 
   Ok(())
 }
