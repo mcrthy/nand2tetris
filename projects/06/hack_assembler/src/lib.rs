@@ -1,11 +1,11 @@
-use std::fs::File;
+use std::fs;
 use std::error::Error;
 use std::path::Path;
 use std::ffi::OsStr;
-use std::io::{self, BufRead};
 
 pub struct Config {
-  pub filename: String,
+  input_filename: String,
+  output_filename: String,
 }
 
 impl Config {
@@ -14,9 +14,9 @@ impl Config {
           return Err("not enough arguments");
       }
 
-      let filename = args[1].clone();
+      let input_filename = args[1].clone();
 
-      let extension = Path::new(&filename)
+      let extension = Path::new(&input_filename)
         .extension()
         .and_then(OsStr::to_str);
 
@@ -27,20 +27,27 @@ impl Config {
       } else {
         return Err("no file extension");
       }
-  
-      Ok(Config { filename })
+
+      let filename_no_ext = Path::new(&input_filename)
+        .file_stem()
+        .and_then(OsStr::to_str)
+        .unwrap();
+
+      let output_filename = String::from(filename_no_ext) + ".hack";
+
+      Ok(Config {
+        input_filename,
+        output_filename,
+      })
   }
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let file = File::open(config.filename)?;
+  let input = fs::read_to_string(config.input_filename)?;
+  let mut output = String::new();
 
-  let lines = io::BufReader::new(file).lines();
-
-  for line in lines {
-    if let Ok(ln) = line {
-
-      let mut result = &ln[..];
+  for line in input.split('\n') {
+      let mut result = &line[..];
 
       if let Some(index) = result.find("//") {
         if let Some (instruction) = result.get(..index) {
@@ -57,16 +64,16 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
       }
 
       let instruction = Instruction::new(result);
-      
+      output = output + &instruction.binary + "\n";
     }
-  }
+
+  fs::write(config.output_filename, output)?;
 
   Ok(())
 }
 
 struct Instruction {
   _type: InstructionType,
-  symbols: Vec<String>,
   binary: String,
 }
 
@@ -120,7 +127,7 @@ impl Instruction {
 
     println!("{}", binary);
 
-    Instruction { _type, symbols, binary }
+    Instruction { _type, binary }
   }
 }
 
