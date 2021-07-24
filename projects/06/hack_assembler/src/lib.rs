@@ -42,8 +42,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
       let mut result = &ln[..];
 
-      if let Some(index) = ln.find("//") {
-        if let Some (instruction) = ln.get(..index) {
+      if let Some(index) = result.find("//") {
+        if let Some (instruction) = result.get(..index) {
           result = instruction;
         }
       }
@@ -55,8 +55,31 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
       if result == "" {
         continue
       }
+
+      let instruction_type = get_instruction_type(result);
+
     }
   }
 
   Ok(())
+}
+
+enum InstructionType {
+  A,
+  C,
+  L,
+}
+
+fn get_instruction_type(instruction: &str) -> InstructionType {
+  let first = instruction.chars().next().unwrap();
+
+  if first == '@' {
+    return InstructionType::A;
+  }
+
+  if first == '(' {
+    return InstructionType::L;
+  }
+
+  return InstructionType::C;
 }
