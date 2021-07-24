@@ -51,25 +51,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
   let mut line_number = 0;
 
-  // first pass
   for line in input.split('\n') {
-      let mut result = &line[..];
+      let parsed = parse_instruction(line);
 
-      if let Some(index) = result.find("//") {
-        if let Some (instruction) = result.get(..index) {
-          result = instruction;
-        }
-      }
-
-      if result.len() > 0 {
-        result = result.trim();
-      }
-
-      if result == "" {
+      if parsed == "" {
         continue
       }
 
-      let instruction = Instruction::new(result);
+      let instruction = Instruction::new(parsed);
       
       if let Some(binary) = instruction.binary {
         line_number += 1;
@@ -86,6 +75,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
   Ok(())
 }
+
+fn parse_instruction(line: &str) -> &str {
+  let mut result = line;
+
+  if let Some(index) = result.find("//") {
+    if let Some (instruction) = result.get(..index) {
+      result = instruction;
+    }
+  }
+
+  if result.len() > 0 {
+    result = result.trim();
+  }
+
+  result
+}
+
 
 struct Instruction {
   _type: InstructionType,
