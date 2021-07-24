@@ -2,6 +2,7 @@ use std::fs;
 use std::error::Error;
 use std::path::Path;
 use std::ffi::OsStr;
+use std::collections::HashMap;
 
 pub struct Config {
   input_filename: String,
@@ -46,6 +47,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
   let mut output = String::new();
 
+  let mut symbol_table = HashMap::new();
+
   let mut line_number = 0;
 
   for line in input.split('\n') {
@@ -70,6 +73,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
       if let Some(binary) = instruction.binary {
         line_number += 1;
         output = output + &binary + "\n";
+      } else if let Some(label) = instruction.label {
+        symbol_table.insert(
+          label,
+          line_number,
+        );
       }
     }
 
