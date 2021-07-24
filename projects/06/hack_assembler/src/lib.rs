@@ -77,11 +77,31 @@ impl Instruction {
     if _type == InstructionType::A {
       let symbol = s.get(1..).unwrap();
       symbols.push(String::from(symbol));
-    }
-
-    if _type == InstructionType::L {
+    } else if _type == InstructionType::L {
       let symbol = s.get(1..s.len()-1).unwrap();
       symbols.push(String::from(symbol));
+    } else {
+      let mut dest = "";
+      let mut comp = "";
+      let mut jmp = "";
+
+      if let Some(d_index) = s.find("=") {
+        dest = s.get(..d_index).unwrap();
+
+        if let Some(j_index) = s.find(";") {
+          comp = s.get(d_index+1..j_index).unwrap();
+          jmp = s.get(j_index+1..).unwrap();
+        } else {
+          comp = s.get(d_index+1..).unwrap();
+        }
+      } else if let Some(j_index) = s.find(";") {
+        comp = s.get(..j_index).unwrap();
+        jmp = s.get(j_index+1..).unwrap();
+      }
+
+      symbols.push(String::from(dest));
+      symbols.push(String::from(comp));
+      symbols.push(String::from(jmp));
     }
 
     Instruction { _type, symbols }
