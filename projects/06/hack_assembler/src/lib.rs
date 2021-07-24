@@ -146,180 +146,116 @@ impl Instruction {
   }
 }
 
-fn jmp_to_binary(jmp: &str) -> String {
+fn jmp_to_binary(jmp: &str) -> &str {
+  let result: &str;
+
   if jmp == "" {
-    return String::from("000"); 
+    result = "000"; 
+  } else if jmp == "JGT" {
+    result = "001"; 
+  } else if jmp == "JEQ" {
+    result = "010"; 
+  } else if jmp == "JGE" {
+    result = "011"; 
+  } else if jmp == "JLT" {
+    result = "100"; 
+  } else if jmp == "JNE" {
+    result = "101"; 
+  } else if jmp == "JLE" {
+    result = "110"; 
+  } else { // jmp == "JMP"
+    result = "111";
   }
 
-  if jmp == "JGT" {
-    return String::from("001"); 
-  }
-
-  if jmp == "JEQ" {
-    return String::from("010"); 
-  }
-
-  if jmp == "JGE" {
-    return String::from("011"); 
-  }
-
-  if jmp == "JLT" {
-    return String::from("100"); 
-  }
-
-  if jmp == "JNE" {
-    return String::from("101"); 
-  }
-
-  if jmp == "JLE" {
-    return String::from("110"); 
-  }
-
-  return String::from("111"); 
+  result
 }
 
-fn comp_to_binary(comp: &str) -> String {
+fn comp_to_binary(comp: &str) -> &str {
+  let result: &str;
+
   if comp == "0" {
-    return String::from("0101010");
+    result = "0101010";
+  } else if comp == "1" {
+    result = "0111111";
+  } else if comp == "-1" {
+    result = "0111010";
+  } else if comp == "D" {
+    result = "0001100";
+  } else if comp == "A" {
+    result = "0110000";
+  } else if comp == "M" {
+    result = "1110000";
+  } else if comp == "!D" {
+    result = "0001101";
+  } else if comp == "!A" {
+    result = "0110001";
+  } else if comp == "!M" {
+    result = "1110001";
+  } else if comp == "-D" {
+    result = "0001111";
+  } else if comp == "-A" {
+    result = "0110011";
+  } else if comp == "-M" {
+    result = "1110011";
+  } else if comp == "D+1" {
+    result = "0011111";
+  } else if comp == "A+1" {
+    result = "0110111";
+  } else if comp == "M+1" {
+    result = "1110111";
+  } else if comp == "D-1" {
+    result = "0001110";
+  } else if comp == "A-1" {
+    result = "0110010";
+  } else if comp == "M-1" {
+    result = "1110010";
+  } else if comp == "D+A" {
+    result = "0000010";
+  } else if comp == "D+M" {
+    result = "1000010";
+  } else if comp == "D-A" {
+    result = "0010011";
+  } else if comp == "D-M" {
+    result = "1010011";
+  } else if comp == "A-D" {
+    result = "0000111";
+  } else if comp == "M-D" {
+    result = "1000111";
+  } else if comp == "D&A" {
+    result = "0000000";
+  } else if comp == "D&M" {
+    result = "1000000";
+  } else if comp == "D|A" {
+    result = "0010101";
+  } else {  // comp == "D|M"
+    result = "1010101";
   }
 
-  if comp == "1" {
-    return String::from("0111111");
-  }
-
-  if comp == "-1" {
-    return String::from("0111010");
-  }
-
-  if comp == "D" {
-    return String::from("0001100");
-  }
-
-  if comp == "A" {
-    return String::from("0110000");
-  }
-
-  if comp == "M" {
-    return String::from("1110000");
-  }
-
-  if comp == "!D" {
-    return String::from("0001101");
-  }
-
-  if comp == "!A" {
-    return String::from("0110001");
-  }
-
-  if comp == "!M" {
-    return String::from("1110001");
-  }
-
-  if comp == "-D" {
-    return String::from("0001111");
-  }
-
-  if comp == "-A" {
-    return String::from("0110011");
-  }
-
-  if comp == "-M" {
-    return String::from("1110011");
-  }
-
-  if comp == "D+1" {
-    return String::from("0011111");
-  }
-
-  if comp == "A+1" {
-    return String::from("0110111");
-  }
-
-  if comp == "M+1" {
-    return String::from("1110111");
-  }
-
-  if comp == "D-1" {
-    return String::from("0001110");
-  }
-
-  if comp == "A-1" {
-    return String::from("0110010");
-  }
-
-  if comp == "M-1" {
-    return String::from("1110010");
-  }
-
-  if comp == "D+A" {
-    return String::from("0000010");
-  }
-
-  if comp == "D+M" {
-    return String::from("1000010");
-  }
-
-  if comp == "D-A" {
-    return String::from("0010011");
-  }
-
-  if comp == "D-M" {
-    return String::from("1010011");
-  }
-
-  if comp == "A-D" {
-    return String::from("0000111");
-  }
-
-  if comp == "M-D" {
-    return String::from("1000111");
-  }
-
-  if comp == "D&A" {
-    return String::from("0000000");
-  }
-
-  if comp == "D&M" {
-    return String::from("1000000");
-  }
-
-  if comp == "D|A" {
-    return String::from("0010101");
-  }
-
-  return String::from("1010101");
+  result
 }
 
-fn dest_to_binary(dest: &str) -> String {
+fn dest_to_binary(dest: &str) -> &str {
+  let result: &str;
+
   if dest == "" {
-    return String::from("000");
+    result = "000";
+  } else if dest == "M" {
+    result = "001";
+  } else if dest == "D" {
+    result = "010";
+  } else if dest == "DM" {
+    result = "011";
+  } else if dest == "A" {
+    result = "100";
+  } else if dest == "AM" {
+    result = "101";
+  } else if dest == "AD" {
+    result = "110";
+  } else {  // dest == "ADM"
+    result = "111";
   }
 
-  if dest == "M" {
-    return String::from("001");
-  }
-
-  if dest == "D" {
-    return String::from("010");
-  }
-
-  if dest == "DM" {
-    return String::from("011");
-  }
-
-  if dest == "A" {
-    return String::from("100");
-  }
-
-  if dest == "AM" {
-    return String::from("101");
-  }
-
-  if dest == "AD" {
-    return String::from("110");
-  }
-
-  String::from("111")
+  result
 }
 
 #[derive(PartialEq)]
@@ -332,16 +268,17 @@ enum InstructionType {
 impl InstructionType {
   fn get(instruction: &str) -> InstructionType {
     let first = instruction.chars().next().unwrap();
+    let result: InstructionType;
   
     if first == '@' {
-      return InstructionType::A;
+      result = InstructionType::A;
+    } else if first == '(' {
+      result = InstructionType::L;
+    } else {
+      result = InstructionType::C;
     }
-  
-    if first == '(' {
-      return InstructionType::L;
-    }
-  
-    return InstructionType::C;
+
+    result
   }
 }
 
