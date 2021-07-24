@@ -46,6 +46,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
   let mut output = String::new();
 
+  let mut line_number = 0;
+
   for line in input.split('\n') {
       let mut result = &line[..];
 
@@ -64,7 +66,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
       }
 
       let instruction = Instruction::new(result);
-      output = output + &instruction.binary + "\n";
+      
+      if let Some(binary) = instruction.binary {
+        line_number += 1;
+        output = output + &binary + "\n";
+      }
     }
 
   fs::write(config.output_filename, output)?;
@@ -74,7 +80,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 struct Instruction {
   _type: InstructionType,
-  binary: String,
+  binary: Option<String>,
+  label: Option<String>,
 }
 
 impl Instruction {
@@ -82,19 +89,20 @@ impl Instruction {
     let _type = InstructionType::get(s);
 
     let mut symbols = Vec::new();
-    let binary: String;
 
-    // parse symbols
+    let mut label = None;
+    let mut binary = None;
+
     if _type == InstructionType::A {
       let symbol = s.get(1..).unwrap();
       symbols.push(String::from(symbol));
 
       let value: i32 = symbol.parse().unwrap();
-      binary = String::from("0") + &format!("{:015b}", value);
+      binary = Some(String::from("0") + &format!("{:015b}", value));
 
-    // } else if _type == InstructionType::L {
-    //   let symbol = s.get(1..s.len()-1).unwrap();
-    //   symbols.push(String::from(symbol));
+    } else if _type == InstructionType::L {
+      let symbol = s.get(1..s.len()-1).unwrap();
+      label = Some(String::from(symbol));
     } else {
       let mut dest = "";
       let mut comp = "";
@@ -118,16 +126,18 @@ impl Instruction {
       let comp_binary = comp_to_binary(comp);
       let jmp_binary = jmp_to_binary(jmp);
 
-      binary = String::from("111") + &dest_binary + &comp_binary + &jmp_binary;
+      binary = Some(String::from("111") + &dest_binary + &comp_binary + &jmp_binary);
 
       symbols.push(String::from(dest));
       symbols.push(String::from(comp));
       symbols.push(String::from(jmp));
     }
 
-    println!("{}", binary);
-
-    Instruction { _type, binary }
+    Instruction {
+      _type,
+      binary,
+      label,
+    }
   }
 }
 
