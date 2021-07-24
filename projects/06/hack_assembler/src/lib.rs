@@ -51,6 +51,7 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
   let mut line_number = 0;
 
+  // first pass
   for line in input.split('\n') {
       let mut result = &line[..];
 
@@ -96,18 +97,18 @@ impl Instruction {
   fn new(s: &str) -> Instruction {
     let _type = InstructionType::get(s);
 
-    let mut symbols = Vec::new();
-
     let mut label = None;
     let mut binary = None;
 
     if _type == InstructionType::A {
       let symbol = s.get(1..).unwrap();
-      symbols.push(String::from(symbol));
 
-      let value: i32 = symbol.parse().unwrap();
-      binary = Some(String::from("0") + &format!("{:015b}", value));
-
+      if let Ok(num) = symbol.parse::<i32>() {
+        binary = Some(format!("{:016b}", num));
+      } else {
+        label = Some(String::from(symbol));
+      }
+      
     } else if _type == InstructionType::L {
       let symbol = s.get(1..s.len()-1).unwrap();
       label = Some(String::from(symbol));
@@ -135,10 +136,6 @@ impl Instruction {
       let jmp_binary = jmp_to_binary(jmp);
 
       binary = Some(String::from("111") + &dest_binary + &comp_binary + &jmp_binary);
-
-      symbols.push(String::from(dest));
-      symbols.push(String::from(comp));
-      symbols.push(String::from(jmp));
     }
 
     Instruction {
