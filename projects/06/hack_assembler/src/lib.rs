@@ -65,13 +65,26 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 struct Instruction {
   _type: InstructionType,
+  symbols: Vec<String>,
 }
 
 impl Instruction {
   fn new(s: &str) -> Instruction {
     let _type = InstructionType::get(s);
 
-    Instruction { _type }
+    let mut symbols = Vec::new();
+
+    if _type == InstructionType::A {
+      let symbol = s.get(1..).unwrap();
+      symbols.push(String::from(symbol));
+    }
+
+    if _type == InstructionType::L {
+      let symbol = s.get(1..s.len()-1).unwrap();
+      symbols.push(String::from(symbol));
+    }
+
+    Instruction { _type, symbols }
   }
 }
 
