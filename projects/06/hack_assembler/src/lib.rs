@@ -56,30 +56,45 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         continue
       }
 
-      let instruction_type = get_instruction_type(result);
-
+      let instruction = Instruction::new(result);
     }
   }
 
   Ok(())
 }
 
+struct Instruction {
+  _type: InstructionType,
+}
+
+impl Instruction {
+  fn new(s: &str) -> Instruction {
+    let _type = InstructionType::get(s);
+
+    Instruction { _type }
+  }
+}
+
+#[derive(PartialEq)]
 enum InstructionType {
   A,
   C,
   L,
 }
 
-fn get_instruction_type(instruction: &str) -> InstructionType {
-  let first = instruction.chars().next().unwrap();
-
-  if first == '@' {
-    return InstructionType::A;
+impl InstructionType {
+  fn get(instruction: &str) -> InstructionType {
+    let first = instruction.chars().next().unwrap();
+  
+    if first == '@' {
+      return InstructionType::A;
+    }
+  
+    if first == '(' {
+      return InstructionType::L;
+    }
+  
+    return InstructionType::C;
   }
-
-  if first == '(' {
-    return InstructionType::L;
-  }
-
-  return InstructionType::C;
 }
+
