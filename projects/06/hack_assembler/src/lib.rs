@@ -45,33 +45,31 @@ impl Config {
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
-  let mut output = String::new();
-
+  
   let mut symbol_table = HashMap::new();
-
   let mut line_number = 0;
 
   for line in input.split('\n') {
       let parsed = parse_instruction(line);
 
-      if parsed == "" {
-        continue
-      }
-
-      let instruction = Instruction::new(parsed);
-      
-      if let Some(binary) = instruction.binary {
-        line_number += 1;
-        output = output + &binary + "\n";
-      } else if let Some(label) = instruction.label {
-        symbol_table.insert(
-          label,
-          line_number,
-        );
+      if parsed != "" {
+        let instruction = Instruction::new(parsed);
+        
+        if instruction._type == InstructionType::A || instruction._type == InstructionType::C {
+          line_number += 1;
+        } else if instruction._type == InstructionType::L {
+          match instruction.label {
+            Some(label) => {
+              symbol_table.insert(
+                label,
+                line_number
+              );
+            },
+            None => return Err("missing label".into()),
+          }
+        }
       }
     }
-
-  fs::write(config.output_filename, output)?;
 
   Ok(())
 }
