@@ -117,23 +117,9 @@ impl Instruction {
       let symbol = s.get(1..s.len()-1).unwrap();
       label = Some(String::from(symbol));
     } else {
-      let mut dest = "";
-      let mut comp = "";
-      let mut jmp = "";
-
-      if let Some(d_index) = s.find("=") {
-        dest = s.get(..d_index).unwrap();
-
-        if let Some(j_index) = s.find(";") {
-          comp = s.get(d_index+1..j_index).unwrap();
-          jmp = s.get(j_index+1..).unwrap();
-        } else {
-          comp = s.get(d_index+1..).unwrap();
-        }
-      } else if let Some(j_index) = s.find(";") {
-        comp = s.get(..j_index).unwrap();
-        jmp = s.get(j_index+1..).unwrap();
-      }
+      let dest = parse_dest(s);
+      let jmp = parse_jmp(s);
+      let comp = parse_comp(s);
 
       let dest_binary = dest_to_binary(dest);
       let comp_binary = comp_to_binary(comp);
@@ -148,6 +134,60 @@ impl Instruction {
       label,
     }
   }
+}
+
+fn parse_comp(s: &str) -> &str {
+  let result: Option<&str>;
+
+  if let Some(d_index) = s.find("=") {
+    if let Some(j_index) = s.find(";") {
+      result = s.get(d_index+1..j_index);
+    } else {
+      result = s.get(d_index+1..);
+    }
+  } else if let Some(j_index) = s.find(";") {
+    result = s.get(..j_index);
+  } else {
+    result = Some(s);
+  }
+
+  if let Some(r) = result {
+    r
+  } else {
+    ""
+  }
+}
+
+fn parse_dest(s: &str) -> &str {
+  let result: &str;
+
+  match s.find("=") {
+    Some(d_index) => {
+      match s.get(..d_index) {
+        Some(d) => result = d,
+        None    => result = "",
+      }
+    },
+    None => result = "",
+  }
+
+  result
+}
+
+fn parse_jmp(s: &str) -> &str {
+  let result: &str;
+
+  match s.find(";") {
+    Some(j_index) => {
+      match s.get(j_index+1..) {
+        Some(j) => result = j,
+        None    => result = "",
+      }
+    }
+    None => result = "",
+  }
+  
+  result
 }
 
 fn jmp_to_binary(jmp: &str) -> &str {
