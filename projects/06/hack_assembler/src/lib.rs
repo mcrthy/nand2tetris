@@ -45,31 +45,94 @@ impl Config {
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
+  let mut output= String::new();
   
-  let mut symbol_table = HashMap::new();
+  let mut symbol_table: HashMap<String, i32> = HashMap::new();
+
   let mut line_number = 0;
 
-  for line in input.split('\n') {
-      let parsed = parse_instruction(line);
+  // load predefined symbols into symbol table
+  symbol_table.insert(String::from("R0"), 0);
+  symbol_table.insert(String::from("R1"), 1);
+  symbol_table.insert(String::from("R2"), 2);
+  symbol_table.insert(String::from("R3"), 3);
+  symbol_table.insert(String::from("R4"), 4);
+  symbol_table.insert(String::from("R5"), 5);
+  symbol_table.insert(String::from("R6"), 6);
+  symbol_table.insert(String::from("R7"), 7);
+  symbol_table.insert(String::from("R8"), 8);
+  symbol_table.insert(String::from("R9"), 9);
+  symbol_table.insert(String::from("R10"), 10);
+  symbol_table.insert(String::from("R11"), 11);
+  symbol_table.insert(String::from("R12"), 12);
+  symbol_table.insert(String::from("R13"), 13);
+  symbol_table.insert(String::from("R14"), 14);
+  symbol_table.insert(String::from("R15"), 15);
+  symbol_table.insert(String::from("SP"), 0);
+  symbol_table.insert(String::from("LCL"), 1);
+  symbol_table.insert(String::from("ARG"), 2);
+  symbol_table.insert(String::from("THIS"), 3);
+  symbol_table.insert(String::from("THAT"), 4);
+  symbol_table.insert(String::from("SCREEN"), 16384);
+  symbol_table.insert(String::from("KBD"), 24576);
 
-      if parsed != "" {
-        let instruction = Instruction::new(parsed);
+  // first pass
+  for line in input.split('\n') {
+    let parsed = parse_instruction(line);
+
+    if parsed != "" {
+      let instruction = Instruction::new(parsed);
         
-        if instruction._type == InstructionType::A || instruction._type == InstructionType::C {
-          line_number += 1;
-        } else if instruction._type == InstructionType::L {
-          match instruction.label {
-            Some(label) => {
-              symbol_table.insert(
-                label,
-                line_number
-              );
-            },
-            None => return Err("missing label".into()),
-          }
+      if instruction._type == InstructionType::A || instruction._type == InstructionType::C {
+        line_number += 1;
+      }
+        
+      if instruction._type == InstructionType::L {
+        match instruction.label {
+          Some(label) => {
+            symbol_table.insert(
+              label,
+              line_number,
+            );
+          },
+          None => return Err("missing label".into()),
         }
       }
     }
+  }
+
+  let mut curr_var = 16;
+
+  // second pass
+  for line in input.split('\n') {
+    let parsed = parse_instruction(line);
+
+    if parsed != "" {
+      let instruction = Instruction::new(parsed);
+
+      if instruction._type == InstructionType::A {
+        if let Some(binary) = instruction.binary.clone() {
+          output = output + &binary + "\n";
+        } else {
+          if let Some(value) = symbol_table.get(&instruction.label.clone().unwrap()) {
+            output = output + &format!("{:016b}", value) + "\n";
+          } else {
+            symbol_table.insert(
+              instruction.label.unwrap(),
+              curr_var,
+            );
+
+            output = output + &format!("{:016b}", curr_var) + "\n";
+            curr_var += 1;
+          }
+        }
+      } else if instruction._type == InstructionType::C {
+        output = output + &instruction.binary.unwrap() + "\n";
+      }
+    }
+  }
+  
+  fs::write(config.output_filename, output)?;
 
   Ok(())
 }
@@ -89,7 +152,6 @@ fn parse_instruction(line: &str) -> &str {
 
   result
 }
-
 
 struct Instruction {
   _type: InstructionType,
@@ -112,11 +174,9 @@ impl Instruction {
       } else {
         label = Some(String::from(symbol));
       }
-      
-    } else if _type == InstructionType::L {
-      let symbol = s.get(1..s.len()-1).unwrap();
-      label = Some(String::from(symbol));
-    } else {
+    }
+
+    if _type == InstructionType::C {
       let dest = parse_dest(s);
       let jmp = parse_jmp(s);
       let comp = parse_comp(s);
@@ -125,7 +185,12 @@ impl Instruction {
       let comp_binary = comp_to_binary(comp);
       let jmp_binary = jmp_to_binary(jmp);
 
-      binary = Some(String::from("111") + &dest_binary + &comp_binary + &jmp_binary);
+      binary = Some(String::from("111") + &comp_binary + &dest_binary + &jmp_binary);
+    }
+
+    if _type == InstructionType::L {
+      let symbol = s.get(1..s.len()-1).unwrap();
+      label = Some(String::from(symbol));
     }
 
     Instruction {
@@ -287,13 +352,13 @@ fn dest_to_binary(dest: &str) -> &str {
     result = "001";
   } else if dest == "D" {
     result = "010";
-  } else if dest == "DM" {
+  } else if dest == "DM" || dest == "MD" {
     result = "011";
   } else if dest == "A" {
     result = "100";
-  } else if dest == "AM" {
+  } else if dest == "AM" || dest == "MA" {
     result = "101";
-  } else if dest == "AD" {
+  } else if dest == "AD" || dest == "DA" {
     result = "110";
   } else {  // dest == "ADM"
     result = "111";
@@ -302,7 +367,7 @@ fn dest_to_binary(dest: &str) -> &str {
   result
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 enum InstructionType {
   A,
   C,
@@ -325,4 +390,3 @@ impl InstructionType {
     result
   }
 }
-
