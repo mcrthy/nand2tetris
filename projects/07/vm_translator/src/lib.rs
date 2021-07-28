@@ -43,18 +43,64 @@ impl Config {
   }
 }
 
-fn parse_instruction(line: &str) -> &str {
-  let mut result = line;
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+  let input = fs::read_to_string(config.input_filename)?;
 
-  if let Some(index) = result.find("//") {
-    if let Some (instruction) = result.get(..index) {
-      result = instruction;
+  Ok(())
+}
+
+enum Instruction {
+  MoveInstruction(MoveInstruction),
+  CalcInstruction(CalcInstruction),
+}
+
+enum MoveInstruction {
+  Push(String),
+  Pop(String),
+}
+
+impl MoveInstruction { 
+  fn get (mv: &str, var: &str) -> MoveInstruction {
+    if
+  }
+}
+
+enum CalcInstruction {
+  Lt,
+  Eq,
+  Gt,
+  Add,
+  Sub,
+  And,
+  Or,
+  Not,
+}
+
+impl CalcInstruction {
+  fn get(s: &str) -> CalcInstruction {
+    match s {
+      "lt"  => CalcInstruction::Lt,
+      "eq"  => CalcInstruction::Eq,
+      "gt"  => CalcInstruction::Gt,
+      "add" => CalcInstruction::Add,
+      "sub" => CalcInstruction::Sub,
+      "and" => CalcInstruction::And,
+      "or"  => CalcInstruction::Or,
+      "not" => CalcInstruction::Not,
     }
   }
-
-  if result.len() > 0 {
-    result = result.trim();
-  }
-
-  result
 }
+
+impl Instruction {
+  fn get(s: &str) -> Instruction {
+    if let Some(space_index) = s.find(" ") {
+      let mv = s.get(..space_index).unwrap();
+      let var = s.get(space_index+1..).unwrap();
+      Instruction::MoveInstruction(MoveInstruction::get(mv, var))
+    } else {
+      Instruction::CalcInstruction(CalcInstruction::get(s))
+    }
+  }
+}
+
+
