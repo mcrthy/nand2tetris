@@ -43,15 +43,7 @@ impl Config {
   }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let input = fs::read_to_string(config.input_filename)?;
-  let mut output= String::new();
-  
-  let mut symbol_table: HashMap<String, i32> = HashMap::new();
-
-  let mut line_number = 0;
-
-  // load predefined symbols into symbol table
+fn preload(mut symbol_table: HashMap<String, i32>) -> HashMap<String, i32> {
   symbol_table.insert(String::from("R0"), 0);
   symbol_table.insert(String::from("R1"), 1);
   symbol_table.insert(String::from("R2"), 2);
@@ -76,68 +68,107 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   symbol_table.insert(String::from("SCREEN"), 16384);
   symbol_table.insert(String::from("KBD"), 24576);
 
-  // first pass
-  for line in input.split('\n') {
-    let parsed = parse_instruction(line);
+  symbol_table
+}
 
-    if parsed != "" {
-      let instruction = Instruction::new(parsed);
-        
-      if instruction._type == InstructionType::A || instruction._type == InstructionType::C {
-        line_number += 1;
-      }
-        
-      if instruction._type == InstructionType::L {
-        match instruction.label {
-          Some(label) => {
-            symbol_table.insert(
-              label,
-              line_number,
-            );
+fn add_labels(mut symbol_table: HashMap<String, i32>, instructions: &Vec<Instruction>) -> HashMap<String, i32> {
+  let mut line_number = 0;
+
+  for instruction in instructions.iter() {
+    match instruction {
+      Instruction::LInstruction(label) => {
+        symbol_table.insert(
+          label.clone(),
+          line_number
+        );
+      },
+      _ => line_number += 1,
+    }
+  }
+  symbol_table
+}
+
+fn generate_output(mut symbol_table: HashMap<String, i32>, instructions: &Vec<Instruction>) -> String {
+  let mut output= String::new();
+  let mut curr_ram_loc = 16;
+
+  for instruction in instructions.iter() {
+    match instruction {
+      Instruction::AInstruction(a_instruction) => {
+        match a_instruction {
+          AInstruction::Num(binary) => {
+            output.push_str(&format!("{}\n", binary));
           },
-          None => return Err("missing label".into()),
+          AInstruction::Var(name) => {
+            if let Some(value) = symbol_table.get(name) {
+              output.push_str(&format!("{:016b}\n", value));
+            } else {
+              symbol_table.insert(
+                name.clone(),
+                curr_ram_loc,
+              );
+
+              output.push_str(&format!("{:016b}\n", curr_ram_loc));
+
+              curr_ram_loc += 1;
+            }
+          },
         }
-      }
+      },
+      Instruction::CInstruction(binary) => {
+        output.push_str(&format!("{}\n", binary));
+      },
+      _ => continue,
     }
   }
+  output
+}
 
-  let mut curr_var = 16;
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+  let input = fs::read_to_string(config.input_filename)?;
 
-  // second pass
-  for line in input.split('\n') {
-    let parsed = parse_instruction(line);
+  let symbol_table: HashMap<String, i32> = HashMap::new();
+  let symbol_table = preload(symbol_table);
 
-    if parsed != "" {
-      let instruction = Instruction::new(parsed);
+  let instructions = get_instructions(input);
 
-      if instruction._type == InstructionType::A {
-        if let Some(binary) = instruction.binary.clone() {
-          output = output + &binary + "\n";
-        } else {
-          if let Some(value) = symbol_table.get(&instruction.label.clone().unwrap()) {
-            output = output + &format!("{:016b}", value) + "\n";
-          } else {
-            symbol_table.insert(
-              instruction.label.unwrap(),
-              curr_var,
-            );
+  let symbol_table = add_labels(symbol_table, &instructions);
 
-            output = output + &format!("{:016b}", curr_var) + "\n";
-            curr_var += 1;
-          }
-        }
-      } else if instruction._type == InstructionType::C {
-        output = output + &instruction.binary.unwrap() + "\n";
-      }
-    }
-  }
-  
+  let output = generate_output(symbol_table, &instructions);
+
   fs::write(config.output_filename, output)?;
-
   Ok(())
 }
 
-fn parse_instruction(line: &str) -> &str {
+// Get the instructions out of a file
+fn get_instructions(input: String) -> Vec<Instruction> {
+  let stripped_file = strip_file(input);
+
+  let mut result = Vec::new();
+
+  for line in stripped_file {
+    result.push(Instruction::get(&line));
+  }
+
+  result
+}
+
+// Separates a string by newline, strips comments and whitespace from each line
+fn strip_file(input: String) -> Vec<String> {
+  let mut result = Vec::new();
+
+  for line in input.split('\n') {
+    if let Some(instruction) = strip_line(line) {
+      result.push(String::from(instruction));
+    }
+  }
+
+  result
+}
+
+// Strips comments and whitespace from a line.
+// If there are no chars left after stripping, return None.
+fn strip_line(line: &str) -> Option<&str> {
   let mut result = line;
 
   if let Some(index) = result.find("//") {
@@ -150,55 +181,71 @@ fn parse_instruction(line: &str) -> &str {
     result = result.trim();
   }
 
-  result
+  if result == "" {
+    None
+  } else {
+    Some(result)
+  }
 }
 
-struct Instruction {
-  _type: InstructionType,
-  binary: Option<String>,
-  label: Option<String>,
+#[derive(PartialEq)]
+enum Instruction {
+  AInstruction(AInstruction),
+  LInstruction(String),
+  CInstruction(String),
+}
+
+#[derive(PartialEq)]
+enum AInstruction {
+  Num(String),
+  Var(String),
+}
+
+impl AInstruction {
+  fn get(s: &str) -> AInstruction {
+    match s.parse::<i32>() {
+      Ok(num) => {
+        let binary = format!("{:016b}", num);
+        println!("binary: {}", binary);
+        AInstruction::Num(binary)
+      },
+      _ => {
+        let name = String::from(s);
+        AInstruction::Var(name)
+      }
+    }
+  }
 }
 
 impl Instruction {
-  fn new(s: &str) -> Instruction {
-    let _type = InstructionType::get(s);
+  fn get(s: &str) -> Instruction {
+    let head = s.get(0..1).unwrap();
+    let tail = s.get(1..).unwrap();
+    let body = s.get(1..s.len()-1).unwrap();
 
-    let mut label = None;
-    let mut binary = None;
-
-    if _type == InstructionType::A {
-      let symbol = s.get(1..).unwrap();
-
-      if let Ok(num) = symbol.parse::<i32>() {
-        binary = Some(format!("{:016b}", num));
-      } else {
-        label = Some(String::from(symbol));
-      }
-    }
-
-    if _type == InstructionType::C {
-      let dest = parse_dest(s);
-      let jmp = parse_jmp(s);
-      let comp = parse_comp(s);
-
-      let dest_binary = dest_to_binary(dest);
-      let comp_binary = comp_to_binary(comp);
-      let jmp_binary = jmp_to_binary(jmp);
-
-      binary = Some(String::from("111") + &comp_binary + &dest_binary + &jmp_binary);
-    }
-
-    if _type == InstructionType::L {
-      let symbol = s.get(1..s.len()-1).unwrap();
-      label = Some(String::from(symbol));
-    }
-
-    Instruction {
-      _type,
-      binary,
-      label,
+    if head == "@" {
+      println!("a instruction: {}", s);
+      println!("tail: {}", tail);
+      Instruction::AInstruction(AInstruction::get(tail))
+    } else if head == "(" {
+      Instruction::LInstruction(String::from(body))
+    } else {
+      let binary = construct_comp_binary(s);
+      Instruction::CInstruction(binary)
     }
   }
+}
+
+fn construct_comp_binary(s: &str) -> String {
+  let dest = parse_dest(s);
+  let jmp = parse_jmp(s);
+  let comp = parse_comp(s);
+
+  let dest_binary = dest_to_binary(dest);
+  let comp_binary = comp_to_binary(comp);
+  let jmp_binary = jmp_to_binary(jmp);
+
+  String::from("111") + &comp_binary + &dest_binary + &jmp_binary
 }
 
 fn parse_comp(s: &str) -> &str {
@@ -365,28 +412,4 @@ fn dest_to_binary(dest: &str) -> &str {
   }
 
   result
-}
-
-#[derive(Debug, PartialEq)]
-enum InstructionType {
-  A,
-  C,
-  L,
-}
-
-impl InstructionType {
-  fn get(instruction: &str) -> InstructionType {
-    let first = instruction.chars().next().unwrap();
-    let result: InstructionType;
-  
-    if first == '@' {
-      result = InstructionType::A;
-    } else if first == '(' {
-      result = InstructionType::L;
-    } else {
-      result = InstructionType::C;
-    }
-
-    result
-  }
 }
