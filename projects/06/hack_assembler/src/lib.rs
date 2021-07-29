@@ -169,7 +169,7 @@ enum Instruction {
   CInstruction(String),
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum AInstruction {
   Num(String),
   Var(String),
@@ -310,16 +310,13 @@ fn comp_to_binary(comp: &str) -> &str {
 
 fn dest_to_binary(dest: &str) -> &str {
   match dest {
-    ""   => "000",
-    "M"  => "001",
-    "D"  => "010",
-    "DM" => "011",
-    "MD" => "011",
-    "A"  => "100",
-    "AM" => "101",
-    "MA" => "101",
-    "AD" => "110",
-    "DA" => "110",
+    ""          => "000",
+    "M"         => "001",
+    "D"         => "010",
+    "DM" | "MD" => "011",
+    "A"         => "100",
+    "AM" | "MA" => "101",
+    "AD" | "DA" => "110",
     _    => "111",  // dest = "ADM"
   }
 }
