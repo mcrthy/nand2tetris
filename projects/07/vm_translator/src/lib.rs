@@ -638,7 +638,8 @@ D=M&D
 A=M
 M=D
 @SP
-M=M+1"
+M=M+1
+"
 }
 
 fn or() -> &'static str {
