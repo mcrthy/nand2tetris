@@ -115,7 +115,7 @@ enum Instruction {
 impl Instruction {
   fn get(s: &str) -> Instruction {
     match s.find(" ") {
-      Some(space_index) => {
+      Some(_) => {
         let mut parsed = s.split(" ");
         let mv = parsed.next().unwrap();
         let seg = parsed.next().unwrap();
@@ -199,11 +199,14 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
   let output = generate_output(&instructions, config.file_stem);
 
+  fs::write(config.output_filename, output)?;
+
   Ok(())
 }
 
 fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String {
   let mut output = String::new();
+  let mut cnt = 0;
 
   for instruction in instructions {
     match instruction {
@@ -211,25 +214,38 @@ fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String
         match movement {
           Movement::Push(segment, val) => {
             match segment {
-              Segment::Argument => output.push_str(push_argument(val)),
-              Segment::Local    => output.push_str(push_local(val)),
-              Segment::Static   => output.push_str(push_static(val, file_stem)),
-              Segment::Constant => output.push_str(push_constant(val)),
-              Segment::This     => output.push_str(push_this(val)),
-              Segment::That     => output.push_str(push_that(val)),
-              Segment::Pointer  => output.push_str(push_pointer(val)),
-              Segment::Temp     => output.push_str(push_temp(val)),
+              Segment::Argument => output.push_str(&push_argument(val)),
+              Segment::Local    => output.push_str(&push_local(val)),
+              Segment::Static   => output.push_str(&push_static(val, &file_stem)),
+              Segment::Constant => output.push_str(&push_constant(val)),
+              Segment::This     => output.push_str(&push_this(val)),
+              Segment::That     => output.push_str(&push_that(val)),
+              Segment::Pointer  => {
+                if val == "0" {
+                  output.push_str(push_this_pointer());
+                } else {
+                  output.push_str(push_that_pointer());
+                }
+                
+              },
+              Segment::Temp     => output.push_str(&push_temp(val)),
             }
           },
           Movement::Pop(segment, val) => {
             match segment {
-              Segment::Argument => output.push_str(pop_argument(val)),
-              Segment::Local    => output.push_str(pop_local(val)),
-              Segment::Static   => output.push_str(pop_static(val, file_stem)),
-              Segment::This     => output.push_str(pop_this(val)),
-              Segment::That     => output.push_str(pop_that(val)),
-              Segment::Pointer  => output.push_str(pop_pointer(val)),
-              Segment::Temp     => output.push_str(pop_temp(val)),
+              Segment::Argument => output.push_str(&pop_argument(val)),
+              Segment::Local    => output.push_str(&pop_local(val)),
+              Segment::Static   => output.push_str(&pop_static(val, &file_stem)),
+              Segment::This     => output.push_str(&pop_this(val)),
+              Segment::That     => output.push_str(&pop_that(val)),
+              Segment::Pointer  => {
+                if val == "0" {
+                  output.push_str(pop_this_pointer());
+                } else {
+                  output.push_str(pop_that_pointer());
+                }
+              },
+              Segment::Temp     => output.push_str(&pop_temp(val)),
               _ => continue,
             }
           }
@@ -246,10 +262,11 @@ fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String
           },
           Calculation::Comparison(comparison) => {
             match comparison {
-              Comparison::Eq => output.push_str(eq()),
-              Comparison::Gt => output.push_str(gt()),
-              Comparison::Lt => output.push_str(lt()),
+              Comparison::Eq => output.push_str(&eq(cnt)),
+              Comparison::Gt => output.push_str(&gt(cnt)),
+              Comparison::Lt => output.push_str(&lt(cnt)),
             }
+            cnt += 1;
           },
           Calculation::Logical(logical) => {
             match logical {
@@ -265,9 +282,9 @@ fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String
   output
 }
 
-fn push_argument(offset: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", offset));
+fn push_argument(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
   result.push_str(
 "\
 D=A
@@ -282,12 +299,12 @@ M=M+1
 "
   );
 
-  &result
+  result
 }
 
-fn push_local(offset: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", offset));
+fn push_local(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
   result.push_str(
 "\
 D=A
@@ -302,12 +319,12 @@ M=M+1
 "
   );
     
-  &result
+  result
 }
 
-fn push_this(offset: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", offset));
+fn push_this(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
   result.push_str(
 "\
 D=A
@@ -322,12 +339,12 @@ M=M+1
 "
   );
     
-  &result
+  result
 }
 
-fn push_that(offset: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", offset));
+fn push_that(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
   result.push_str(
 "\
 D=A
@@ -342,7 +359,7 @@ M=M+1
 "
   );
     
-  &result
+  result
 }
 
 fn push_this_pointer() -> &'static str {
@@ -369,9 +386,9 @@ M=M+1
 "
 }
 
-fn push_temp(offset: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", offset));
+fn push_temp(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
   result.push_str(
 "\
 D=A
@@ -386,12 +403,12 @@ M=M+1
 "
   );
     
-  &result
+  result
 }
 
-fn push_constant(val: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}\n", val));
+fn push_constant(val: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", val));
   result.push_str(
 "\
 D=A
@@ -403,12 +420,12 @@ M=M+1
 "
   );
 
-  &result
+  result
 }
 
-fn push_static(val: &str, file_stem: &str) -> &str {
-  let result = String::new();
-  result.push_str(format!("@{}.{}\n", val, file_stem));
+fn push_static(val: &str, file_stem: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}.{}\n", val, file_stem));
   result.push_str(
 "\
 D=M
@@ -420,5 +437,325 @@ M=M+1
 "
   );
 
-  &result
+  result
+}
+
+fn pop_argument(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
+  result.push_str(
+"\
+D=A
+@ARG
+D=D+M
+@R13
+M=D
+@SP
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+"
+  );
+
+  result
+}
+
+fn pop_local(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
+  result.push_str(
+"\
+D=A
+@LCL
+D=D+M
+@R13
+M=D
+@SP
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+"
+  );
+
+  result
+}
+
+fn pop_this(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
+  result.push_str(
+"\
+D=A
+@THIS
+D=D+M
+@R13
+M=D
+@SP
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+"
+  );
+
+  result
+}
+
+fn pop_that(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
+  result.push_str(
+"\
+D=A
+@THAT
+D=D+M
+@R13
+M=D
+@SP
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+"
+  );
+
+  result
+}
+
+fn pop_this_pointer() -> &'static str {
+"\
+@SP
+AM=M-1
+D=M
+@THIS
+M=D
+"
+}
+
+fn pop_that_pointer() -> &'static str {
+  "\
+  @SP
+  AM=M-1
+  D=M
+  @THAT
+  M=D
+  "
+}
+
+fn pop_temp(offset: &str) -> String {
+  let mut result = String::new();
+  result.push_str(&format!("@{}\n", offset));
+  result.push_str(
+"\
+D=A
+@5
+D=D+A
+@R13
+M=D
+@SP
+AM=M-1
+D=M
+@R13
+A=M
+M=D
+"
+  );
+
+  result
+}
+
+fn pop_static(val: &str, file_stem: &str) -> String {
+  format!(
+"\
+@SP
+AM=M-1
+D=M
+@{}.{}
+M=D
+", val, file_stem)
+}
+
+fn add() -> &'static str {
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M+D
+@SP
+A=M
+M=D
+@SP
+M=M+1
+"
+}
+
+fn sub() -> &'static str {
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M-D
+@SP
+A=M
+M=D
+@SP
+M=M+1
+"
+}
+
+fn neg() -> &'static str {
+"\
+@SP
+AM=M-1
+D=-M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+"
+}
+
+fn and() -> &'static str {
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M&D
+@SP
+A=M
+M=D
+@SP
+M=M+1"
+}
+
+fn or() -> &'static str {
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M|D
+@SP
+ A=M
+M=D
+@SP
+M=M+1
+"
+}
+
+fn not() -> &'static str {
+"\
+@SP
+AM=M-1
+D=!M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+"
+}
+
+fn eq(cnt: i32) -> String {
+  format!(
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M-D
+@TRUE{}
+D;JEQ
+D=0
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@END{}
+0;JMP
+(TRUE{})
+D=-1
+@SP
+A=M
+M=D
+@SP
+M=M+1
+(END{})
+", cnt, cnt, cnt, cnt)
+}
+
+fn gt(cnt: i32) -> String {
+  format!(
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M-D
+@TRUE{}
+D;JGT
+D=0
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@END{}
+0;JMP
+(TRUE{})
+D=-1
+@SP
+A=M
+M=D
+@SP
+M=M+1
+(END{})
+", cnt, cnt, cnt, cnt)
+}
+
+fn lt(cnt: i32) -> String {
+  format!(
+"\
+@SP
+AM=M-1
+D=M
+@SP
+AM=M-1
+D=M-D
+@TRUE{}
+D;JLT
+D=0
+@SP
+A=M
+M=D
+@SP
+M=M+1
+@END{}
+0;JMP
+(TRUE{})
+D=-1
+@SP
+A=M
+M=D
+@SP
+M=M+1
+(END{})
+", cnt, cnt, cnt, cnt)
 }

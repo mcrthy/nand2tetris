@@ -1,0 +1,1 @@
+C:\Users\Matt\Documents\code\nand2tetris\nand2tetris\projects\07\vm_translator\target\debug\vm_translator.exe: C:\Users\Matt\Documents\code\nand2tetris\nand2tetris\projects\07\vm_translator\src\lib.rs C:\Users\Matt\Documents\code\nand2tetris\nand2tetris\projects\07\vm_translator\src\main.rs
