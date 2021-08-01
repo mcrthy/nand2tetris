@@ -64,7 +64,7 @@ impl Assembler {
       }
     });
 
-    // instantiate and preload symbol table
+    // instantiate and preload the symbol table
     let mut symbol_table: HashMap<String, i32> = HashMap::new();
 
     symbol_table.insert(String::from("R0"), 0);
@@ -91,18 +91,7 @@ impl Assembler {
     symbol_table.insert(String::from("SCREEN"), 16384);
     symbol_table.insert(String::from("KBD"), 24576);
 
-    Assembler {
-      symbol_table,
-      instructions }
-  }
-
-  // Insert all L-Instructions into the symbol table.
-  // Key: label
-  // Value: associated line number
-  fn add_labels(&mut self) -> () {
-    let instructions = &mut self.instructions;
-    let symbol_table = &mut self.symbol_table;
-
+    // add labels and their corresponding locations to the symbol table
     let mut line_number = 0;
 
     instructions.iter().for_each(|instruction| {
@@ -118,12 +107,13 @@ impl Assembler {
       }
     });
 
-    ()
+    Assembler {
+      symbol_table,
+      instructions
+    }
   }
 
   fn translate(&mut self) -> String {
-    // filter out L-Instructions
-
     let instructions = &mut self.instructions;
     let symbol_table = &mut self.symbol_table;
 
@@ -210,16 +200,6 @@ impl AInstruction {
       }
     }
   }
-}
-
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let input = fs::read_to_string(config.input_filename)?;
-
-  let mut assembler = Assembler::new(input);
-  assembler.add_labels();
-
-  fs::write(config.output_filename, assembler.translate())?;
-  Ok(())
 }
 
 fn construct_comp_binary(s: &str) -> String {
@@ -332,4 +312,13 @@ fn dest_to_binary(dest: &str) -> &str {
     "AD" | "DA" => "110",
     _    => "111",  // dest = "ADM"
   }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+  let input = fs::read_to_string(config.input_filename)?;
+
+  let mut assembler = Assembler::new(input);
+
+  fs::write(config.output_filename, assembler.translate())?;
+  Ok(())
 }
