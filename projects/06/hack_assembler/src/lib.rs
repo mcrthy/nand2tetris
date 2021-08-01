@@ -43,133 +43,155 @@ impl Config {
   }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let input = fs::read_to_string(config.input_filename)?;
-
-  let symbol_table: HashMap<String, i32> = HashMap::new();
-  let symbol_table = preload(symbol_table);
-
-  let instructions = get_instructions(input);
-
-  let symbol_table = add_labels(symbol_table, &instructions);
-
-  let output = generate_output(symbol_table, &instructions);
-
-  fs::write(config.output_filename, output)?;
-  Ok(())
+struct Assembler {
+  symbol_table: HashMap<String, i32>,
+  instructions: Vec<Instruction>,
 }
 
-fn preload(mut symbol_table: HashMap<String, i32>) -> HashMap<String, i32> {
-  symbol_table.insert(String::from("R0"), 0);
-  symbol_table.insert(String::from("R1"), 1);
-  symbol_table.insert(String::from("R2"), 2);
-  symbol_table.insert(String::from("R3"), 3);
-  symbol_table.insert(String::from("R4"), 4);
-  symbol_table.insert(String::from("R5"), 5);
-  symbol_table.insert(String::from("R6"), 6);
-  symbol_table.insert(String::from("R7"), 7);
-  symbol_table.insert(String::from("R8"), 8);
-  symbol_table.insert(String::from("R9"), 9);
-  symbol_table.insert(String::from("R10"), 10);
-  symbol_table.insert(String::from("R11"), 11);
-  symbol_table.insert(String::from("R12"), 12);
-  symbol_table.insert(String::from("R13"), 13);
-  symbol_table.insert(String::from("R14"), 14);
-  symbol_table.insert(String::from("R15"), 15);
-  symbol_table.insert(String::from("SP"), 0);
-  symbol_table.insert(String::from("LCL"), 1);
-  symbol_table.insert(String::from("ARG"), 2);
-  symbol_table.insert(String::from("THIS"), 3);
-  symbol_table.insert(String::from("THAT"), 4);
-  symbol_table.insert(String::from("SCREEN"), 16384);
-  symbol_table.insert(String::from("KBD"), 24576);
+impl Assembler {
+  fn new(input: String) -> Assembler {
+    let mut instructions = Vec::new();
 
-  symbol_table
-}
+    // extract instructions out of input
+    input.split('\n').for_each(|line| {
+      let instruction = match line.find("//") {
+        Some(comment_index) => line.get(..comment_index).unwrap().trim(),
+        None                => line.trim(),
+      };
 
-fn add_labels(mut symbol_table: HashMap<String, i32>, instructions: &Vec<Instruction>) -> HashMap<String, i32> {
-  let mut line_number = 0;
+      if !instruction.is_empty() {
+        instructions.push(Instruction::get(instruction));
+      }
+    });
 
-  for instruction in instructions.iter() {
-    match instruction {
-      Instruction::LInstruction(label) => {
-        symbol_table.insert(
-          label.clone(),
-          line_number
-        );
-      },
-      _ => line_number += 1,
-    }
+    // instantiate and preload symbol table
+    let mut symbol_table: HashMap<String, i32> = HashMap::new();
+
+    symbol_table.insert(String::from("R0"), 0);
+    symbol_table.insert(String::from("R1"), 1);
+    symbol_table.insert(String::from("R2"), 2);
+    symbol_table.insert(String::from("R3"), 3);
+    symbol_table.insert(String::from("R4"), 4);
+    symbol_table.insert(String::from("R5"), 5);
+    symbol_table.insert(String::from("R6"), 6);
+    symbol_table.insert(String::from("R7"), 7);
+    symbol_table.insert(String::from("R8"), 8);
+    symbol_table.insert(String::from("R9"), 9);
+    symbol_table.insert(String::from("R10"), 10);
+    symbol_table.insert(String::from("R11"), 11);
+    symbol_table.insert(String::from("R12"), 12);
+    symbol_table.insert(String::from("R13"), 13);
+    symbol_table.insert(String::from("R14"), 14);
+    symbol_table.insert(String::from("R15"), 15);
+    symbol_table.insert(String::from("SP"), 0);
+    symbol_table.insert(String::from("LCL"), 1);
+    symbol_table.insert(String::from("ARG"), 2);
+    symbol_table.insert(String::from("THIS"), 3);
+    symbol_table.insert(String::from("THAT"), 4);
+    symbol_table.insert(String::from("SCREEN"), 16384);
+    symbol_table.insert(String::from("KBD"), 24576);
+
+    Assembler {
+      symbol_table,
+      instructions }
   }
-  symbol_table
-}
 
-fn generate_output(mut symbol_table: HashMap<String, i32>, instructions: &Vec<Instruction>) -> String {
-  let mut output= String::new();
-  let mut curr_ram_loc = 16;
+  // Insert all L-Instructions into the symbol table.
+  // Key: label
+  // Value: associated line number
+  fn add_labels(&mut self) -> () {
+    let instructions = &mut self.instructions;
+    let symbol_table = &mut self.symbol_table;
 
-  for instruction in instructions.iter() {
-    match instruction {
-      Instruction::AInstruction(a_instruction) => {
-        match a_instruction {
-          AInstruction::Num(binary) => {
-            output.push_str(&format!("{}\n", binary));
-          },
-          AInstruction::Var(name) => {
-            if let Some(value) = symbol_table.get(name) {
-              output.push_str(&format!("{:016b}\n", value));
-            } else {
-              symbol_table.insert(
-                name.clone(),
-                curr_ram_loc,
-              );
+    let mut line_number = 0;
 
-              output.push_str(&format!("{:016b}\n", curr_ram_loc));
+    instructions.iter().for_each(|instruction| {
+      match instruction {
+        Instruction::LInstruction(label) => {
+          symbol_table.insert(
+            label.clone(),
+            line_number
+          );
 
-              curr_ram_loc += 1;
-            }
-          },
-        }
-      },
-      Instruction::CInstruction(binary) => {
-        output.push_str(&format!("{}\n", binary));
-      },
-      _ => continue,
-    }
+        },
+        _ => line_number += 1,
+      }
+    });
+
+    ()
   }
-  output
-}
 
-// Get the instructions out of a file
-fn get_instructions(input: String) -> Vec<Instruction> {
-  let mut result = Vec::new();
+  fn translate(&mut self) -> String {
+    // filter out L-Instructions
 
-  for line in input.split('\n') {
-    let instruction = strip_line(line);
-    if !instruction.is_empty() {
-      result.push(Instruction::get(instruction));
+    let instructions = &mut self.instructions;
+    let symbol_table = &mut self.symbol_table;
+
+    let mut output = String::new();
+    let mut curr_ram_loc = 16;
+
+    // write A-Instructions and C-Instructions to output
+    instructions.iter().for_each(|instruction| {
+      let translation: String;
+
+      match instruction {
+        Instruction::AInstruction(a_instruction) => {
+          match a_instruction {
+            AInstruction::Num(binary) => translation = format!("{}\n", binary),
+            AInstruction::Var(name)   => {                                
+              if let Some(value) = symbol_table.get(name) {
+                translation = format!("{:016b}\n", value);
+              } else {
+                symbol_table.insert(
+                  name.clone(),
+                  curr_ram_loc,
+                );
+  
+                translation = format!("{:016b}\n", curr_ram_loc);
+  
+                curr_ram_loc += 1;
+              }
+            },
+          }
+        },
+        Instruction::CInstruction(binary) => translation = format!("{}\n", binary),
+        Instruction::LInstruction(_)  => translation = String::new(),
+      }
+
+      output.push_str(&translation);
+    });
+
+    output
   }
-    }
-    
-  result
 }
 
-// Strips comments and whitespace from a line.
-fn strip_line(line: &str) -> &str {
-  match line.find("//") {
-    Some(index) => line.get(..index).unwrap().trim(),
-    None        => line.trim()
-  }
-}
-
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 enum Instruction {
   AInstruction(AInstruction),
   LInstruction(String),
   CInstruction(String),
 }
 
-#[derive(PartialEq, Debug)]
+impl Instruction {
+  fn get(s: &str) -> Instruction {
+    match s.chars().next().unwrap() {
+      '@' => {
+        let result = s.get(1..).unwrap();
+        Instruction::AInstruction(AInstruction::get(result))
+      },
+      '(' => {
+        let result = s.get(1..s.len()-1).unwrap();
+        Instruction::LInstruction(String::from(result))
+      },
+      _   => {
+        let result = construct_comp_binary(s);
+        Instruction::CInstruction(result)
+      }
+    }
+  }
+}
+
+#[derive(Clone, PartialEq)]
 enum AInstruction {
   Num(String),
   Var(String),
@@ -190,23 +212,14 @@ impl AInstruction {
   }
 }
 
-impl Instruction {
-  fn get(s: &str) -> Instruction {
-    match s.chars().next().unwrap() {
-      '@' => {
-        let result = s.get(1..).unwrap();
-        Instruction::AInstruction(AInstruction::get(result))
-      },
-      '(' => {
-        let result = s.get(1..s.len()-1).unwrap();
-        Instruction::LInstruction(String::from(result))
-      },
-      _   => {
-        let result = construct_comp_binary(s);
-        Instruction::CInstruction(result)
-      }
-    }
-  }
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+  let input = fs::read_to_string(config.input_filename)?;
+
+  let mut assembler = Assembler::new(input);
+  assembler.add_labels();
+
+  fs::write(config.output_filename, assembler.translate())?;
+  Ok(())
 }
 
 fn construct_comp_binary(s: &str) -> String {

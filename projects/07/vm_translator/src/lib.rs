@@ -128,28 +128,6 @@ impl Instruction {
   }
 }
 
-// Get the instructions out of a file
-fn get_instructions(input: String) -> Vec<Instruction> {
-  let mut result = Vec::new();
-
-  for line in input.split('\n') {
-    let instruction = strip_line(line);
-    if !instruction.is_empty() {
-      result.push(Instruction::get(instruction));
-  }
-    }
-    
-  result
-}
-
-// Strips comments and whitespace from a line.
-fn strip_line(line: &str) -> &str {
-  match line.find("//") {
-    Some(index) => line.get(..index).unwrap().trim(),
-    None        => line.trim()
-  }
-}
-
 pub struct Config {
   file_stem: String,
   input_filename: String,
@@ -194,6 +172,8 @@ impl Config {
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
+  // let output = translate(input);
+  // fs::write(config.output_filename, output)?;
 
   let instructions = get_instructions(input);
 
@@ -202,6 +182,28 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   fs::write(config.output_filename, output)?;
 
   Ok(())
+}
+
+// Get the instructions out of a file
+fn get_instructions(input: String) -> Vec<Instruction> {
+  let mut result = Vec::new();
+
+  for line in input.split('\n') {
+    let instruction = strip_line(line);
+    if !instruction.is_empty() {
+      result.push(Instruction::get(instruction));
+  }
+    }
+    
+  result
+}
+
+// Strips comments and whitespace from a line.
+fn strip_line(line: &str) -> &str {
+   match line.find("//") {
+    Some(index) => line.get(..index).unwrap().trim(),
+    None        => line.trim()
+  }
 }
 
 fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String {
