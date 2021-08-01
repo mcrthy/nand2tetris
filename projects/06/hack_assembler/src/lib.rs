@@ -43,13 +43,12 @@ impl Config {
   }
 }
 
-struct Assembler {
-  symbol_table: HashMap<String, i32>,
+struct Assembly {
   instructions: Vec<Instruction>,
 }
 
-impl Assembler {
-  fn new(input: String) -> Assembler {
+impl Assembly {
+  fn new(input: String) -> Assembly {
     let mut instructions = Vec::new();
 
     // extract instructions out of input
@@ -64,7 +63,16 @@ impl Assembler {
       }
     });
 
-    // instantiate and preload the symbol table
+    Assembly { instructions }
+  }
+}
+
+struct Assembler {
+  symbol_table: HashMap<String, i32>,
+}
+
+impl Assembler {
+  fn new() -> Assembler {
     let mut symbol_table: HashMap<String, i32> = HashMap::new();
 
     symbol_table.insert(String::from("R0"), 0);
@@ -91,9 +99,14 @@ impl Assembler {
     symbol_table.insert(String::from("SCREEN"), 16384);
     symbol_table.insert(String::from("KBD"), 24576);
 
-    // add labels and their corresponding locations to the symbol table
-    let mut line_number = 0;
+    Assembler { symbol_table }
+  }
 
+  fn translate(&self, instructions: &Vec<Instruction>) -> String {
+    let mut symbol_table = self.symbol_table.clone();
+
+    // add labels to symbol table
+    let mut line_number = 0;
     instructions.iter().for_each(|instruction| {
       match instruction {
         Instruction::LInstruction(label) => {
@@ -107,45 +120,32 @@ impl Assembler {
       }
     });
 
-    Assembler {
-      symbol_table,
-      instructions
-    }
-  }
-
-  fn translate(&mut self) -> String {
-    let instructions = &mut self.instructions;
-    let symbol_table = &mut self.symbol_table;
-
+    // translate instructions
     let mut output = String::new();
     let mut curr_ram_loc = 16;
-
-    // write A-Instructions and C-Instructions to output
     instructions.iter().for_each(|instruction| {
-      let translation: String;
+      let mut translation = String::new();
 
-      match instruction {
-        Instruction::AInstruction(a_instruction) => {
-          match a_instruction {
-            AInstruction::Num(binary) => translation = format!("{}\n", binary),
-            AInstruction::Var(name)   => {                                
-              if let Some(value) = symbol_table.get(name) {
-                translation = format!("{:016b}\n", value);
-              } else {
-                symbol_table.insert(
-                  name.clone(),
-                  curr_ram_loc,
-                );
-  
-                translation = format!("{:016b}\n", curr_ram_loc);
-  
-                curr_ram_loc += 1;
-              }
-            },
-          }
-        },
-        Instruction::CInstruction(binary) => translation = format!("{}\n", binary),
-        Instruction::LInstruction(_)  => translation = String::new(),
+      if let Instruction::AInstruction(a_instruction) = instruction {
+        match a_instruction {
+          AInstruction::Num(binary) => translation = format!("{}\n", binary),
+          AInstruction::Var(name)   => {                                
+            if let Some(value) = symbol_table.get(name) {
+              translation = format!("{:016b}\n", value);
+            } else {
+              symbol_table.insert(
+                name.clone(),
+                curr_ram_loc,
+              );
+
+              translation = format!("{:016b}\n", curr_ram_loc);
+
+              curr_ram_loc += 1;
+            }
+          },
+        }
+      } else if let Instruction::CInstruction(binary) = instruction {
+        translation = format!("{}\n", binary);
       }
 
       output.push_str(&translation);
@@ -317,8 +317,9 @@ fn dest_to_binary(dest: &str) -> &str {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
 
-  let mut assembler = Assembler::new(input);
+  let assembly = Assembly::new(input);
+  let assembler = Assembler::new();
 
-  fs::write(config.output_filename, assembler.translate())?;
+  fs::write(config.output_filename, assembler.translate(&assembly.instructions))?;
   Ok(())
 }

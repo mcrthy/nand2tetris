@@ -170,20 +170,6 @@ impl Config {
   }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-  let input = fs::read_to_string(config.input_filename)?;
-  // let output = translate(input);
-  // fs::write(config.output_filename, output)?;
-
-  let instructions = get_instructions(input);
-
-  let output = generate_output(&instructions, config.file_stem);
-
-  fs::write(config.output_filename, output)?;
-
-  Ok(())
-}
-
 // Get the instructions out of a file
 fn get_instructions(input: String) -> Vec<Instruction> {
   let mut result = Vec::new();
@@ -761,4 +747,18 @@ M=D
 M=M+1
 (END{})
 ", cnt, cnt, cnt, cnt)
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+  let input = fs::read_to_string(config.input_filename)?;
+  // let output = translate(input);
+  // fs::write(config.output_filename, output)?;
+
+  let instructions = get_instructions(input);
+
+  let output = generate_output(&instructions, config.file_stem);
+
+  fs::write(config.output_filename, output)?;
+
+  Ok(())
 }
