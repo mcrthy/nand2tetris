@@ -690,7 +690,7 @@ M=M+1
   )
 }
 
-unsafe fn eq(cnt: i32) -> String {
+fn eq(cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -720,7 +720,7 @@ M=M+1
 ", cnt, cnt, cnt, cnt)
 }
 
-unsafe fn gt(cnt: i32) -> String {
+fn gt(cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -750,7 +750,7 @@ M=M+1
 ", cnt, cnt, cnt, cnt)
 }
 
-unsafe fn lt(cnt: i32) -> String {
+fn lt(cnt: i32) -> String {
   format!(
 "\
 @SP
