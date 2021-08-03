@@ -51,7 +51,6 @@ impl Assembly {
   fn new(input: String) -> Assembly {
     let mut instructions = Vec::new();
 
-    // extract instructions out of input
     input.split('\n').for_each(|line| {
       let instruction = match line.find("//") {
         Some(comment_index) => line.get(..comment_index).unwrap().trim(),

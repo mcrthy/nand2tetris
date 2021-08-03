@@ -18,11 +18,11 @@ M=D
 @SP
 M=M+1
 @SP
-  AM=M-1
-  D=M
-  @THAT
-  M=D
-  @32
+AM=M-1
+D=M
+@THAT
+M=D
+@32
 D=A
 @SP
 A=M

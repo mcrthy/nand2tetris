@@ -2,131 +2,7 @@ use std::fs;
 use std::error::Error;
 use std::path::Path;
 use std::ffi::OsStr;
-
-enum Segment {
-  Argument,
-  Local,
-  Static,
-  Constant,
-  This,
-  That,
-  Pointer,
-  Temp,
-}
-
-impl Segment {
-  fn get(s: &str) -> Segment {
-    match s {
-      "argument" => Segment::Argument,
-      "local"    => Segment::Local,
-      "static"   => Segment::Static,
-      "constant" => Segment::Constant,
-      "this"     => Segment::This,
-      "that"     => Segment::That,
-      "pointer"  => Segment::Pointer,
-      _          => Segment::Temp,    // s == "temp"
-    }
-  }
-}
-
-enum Calculation {
-  Arithmetic(Arithmetic),
-  Comparison(Comparison),
-  Logical(Logical),
-}
-
-impl Calculation {
-  fn get(s: &str) -> Calculation {
-    match s {
-      "add" | "sub" | "neg" => Calculation::Arithmetic(Arithmetic::get(s)),
-      "eq"  | "gt"  | "lt"  => Calculation::Comparison(Comparison::get(s)),
-      _                     => Calculation::Logical(Logical::get(s)), // "and" | "or" | "not"
-    }
-  }
-}
-
-enum Arithmetic {
-  Add,
-  Sub,
-  Neg,
-}
-
-impl Arithmetic {
-  fn get(s: &str) -> Arithmetic {
-    match s {
-      "add" => Arithmetic::Add,
-      "sub" => Arithmetic::Sub,
-      _     => Arithmetic::Neg  // "neg"
-    }
-  }
-}
-
-enum Comparison {
-  Eq,
-  Gt,
-  Lt,
-}
-
-impl Comparison {
-  fn get(s: &str) -> Comparison {
-    match s {
-      "eq" => Comparison::Eq,
-      "gt" => Comparison::Gt,
-      _    => Comparison::Lt, // "lt"
-    }
-  }
-}
-
-enum Logical {
-  And,
-  Or,
-  Not,
-}
-
-impl Logical {
-  fn get(s: &str) -> Logical {
-    match s {
-      "and" => Logical::And,
-      "or"  => Logical::Or,
-      _     => Logical::Not // "not"
-    }
-  }
-}
-
-enum Movement {
-  Push(Segment, String),
-  Pop(Segment, String),
-}
-
-impl Movement {
-  fn get(mv: &str, seg: &str, val: &str) -> Movement {
-    match mv {
-      "push" => Movement::Push(Segment::get(seg), String::from(val)),
-      _      => Movement::Pop(Segment::get(seg), String::from(val)),  // "pop"
-    }
-  }
-}
-
-enum Instruction {
-  Movement(Movement),
-  Calculation(Calculation),
-}
-
-impl Instruction {
-  fn get(s: &str) -> Instruction {
-    match s.find(" ") {
-      Some(_) => {
-        let mut parsed = s.split(" ");
-        let mv = parsed.next().unwrap();
-        let seg = parsed.next().unwrap();
-        let val = parsed.next().unwrap();
-
-        Instruction::Movement(Movement::get(mv, seg, val))
-      },
-      None => Instruction::Calculation(Calculation::get(s))
-    }
-  }
-}
+use std::fmt;
 
 pub struct Config {
   file_stem: String,
@@ -170,104 +46,239 @@ impl Config {
   }
 }
 
-// Get the instructions out of a file
-fn get_instructions(input: String) -> Vec<Instruction> {
-  let mut result = Vec::new();
+#[derive(Debug)]
+enum Instruction {
+  Movement(Movement),
+  Calculation(Calculation),
+}
 
-  for line in input.split('\n') {
-    let instruction = strip_line(line);
-    if !instruction.is_empty() {
-      result.push(Instruction::get(instruction));
-  }
+impl Instruction {
+  fn get(s: &str, file_stem: &str) -> Instruction {
+    match s.find(" ") {
+      Some(_) => {
+        let mut parsed = s.split(" ");
+        let mv = parsed.next().unwrap();
+        let seg = parsed.next().unwrap();
+        let val = parsed.next().unwrap();
+
+        Instruction::Movement(Movement::get(mv, seg, val, file_stem))
+      },
+      None => unsafe { Instruction::Calculation(Calculation::get(s)) }
     }
+  }
+}
+
+impl fmt::Display for Instruction {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Instruction::Movement(movement)       => movement.fmt(f),
+      Instruction::Calculation(calculation) => calculation.fmt(f),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Movement {
+  Push(String),
+  Pop(String),
+}
+
+impl Movement {
+  fn get(mv: &str, seg: &str, val: &str, file_stem: &str) -> Movement {
+    match mv {
+      "push" => 
+        Movement::Push(match seg {
+          "argument" => push_argument(val),
+          "local"    => push_local(val),
+          "static"   => push_static(val, &file_stem),
+          "constant" => push_constant(val),
+          "this"     => push_this(val),
+          "that"     => push_that(val),
+          "pointer"  => {
+            if val == "0" {
+              push_this_pointer()
+            } else {
+              push_that_pointer()
+            }    
+              },
+          "temp"     => push_temp(val),
+          _          => String::new(),
+        }),
+      _      =>                                     // "pop"
+        Movement::Pop(match seg {
+          "argument" => pop_argument(val),
+          "local"    => pop_local(val),
+          "static"   => pop_static(val, &file_stem),
+          "this"     => pop_this(val),
+          "that"     => pop_that(val),
+          "pointer"  => {
+            if val == "0" {
+              pop_this_pointer()
+            } else {
+              pop_that_pointer()
+            }
+          },
+          "temp"    => pop_temp(val),
+          _         => String::new(),
+        }),
+    }
+  }
+}
+
+impl fmt::Display for Movement {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Movement::Push(assembly) => write!(f, "{}", assembly),
+      Movement::Pop(assembly)  => write!(f, "{}", assembly),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Calculation {
+  Arithmetic(Arithmetic),
+  Comparison(Comparison),
+  Logical(Logical),
+}
+
+impl Calculation {
+  unsafe fn get(s: &str) -> Calculation {
+    match s {
+      "add" | "sub" | "neg" => Calculation::Arithmetic(Arithmetic::get(s)),
+      "eq"  | "gt"  | "lt"  => Calculation::Comparison(Comparison::get(s)),
+      _                     => Calculation::Logical(Logical::get(s)), // "and" | "or" | "not"
+    }
+  }
+}
+
+impl fmt::Display for Calculation {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Calculation::Arithmetic(arithmetic) => arithmetic.fmt(f),
+      Calculation::Comparison(comparison) => comparison.fmt(f),
+      Calculation::Logical(logical)       => logical.fmt(f),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Arithmetic {
+  Add(String),
+  Sub(String),
+  Neg(String),
+}
+
+impl Arithmetic {
+  fn get(s: &str) -> Arithmetic {
+    match s {
+      "add" => Arithmetic::Add(add()),
+      "sub" => Arithmetic::Sub(sub()),
+      _     => Arithmetic::Neg(neg())  // "neg"
+    }
+  }
+}
+
+impl fmt::Display for Arithmetic {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Arithmetic::Add(assembly) => write!(f, "{}", assembly),
+      Arithmetic::Sub(assembly)  => write!(f, "{}", assembly),
+      Arithmetic::Neg(assembly) => write!(f, "{}", assembly),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Comparison {
+  Eq(String),
+  Gt(String),
+  Lt(String),
+}
+
+impl Comparison {
+  unsafe fn get(s: &str) -> Comparison {
+    static mut COUNT: i32 = 0;
+
+     let comparison = match s {
+      "eq" => Comparison::Eq(eq(COUNT)),
+      "gt" => Comparison::Gt(gt(COUNT)),
+      _    => Comparison::Lt(lt(COUNT)), // "lt"
+    };
+
+    COUNT += 1;
+
+    comparison
+  }
+}
+
+impl fmt::Display for Comparison {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Comparison::Eq(assembly) => write!(f, "{}", assembly),
+      Comparison::Gt(assembly)  => write!(f, "{}", assembly),
+      Comparison::Lt(assembly) => write!(f, "{}", assembly),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Logical {
+  And(String),
+  Or(String),
+  Not(String),
+}
+
+impl Logical {
+  fn get(s: &str) -> Logical {
+    match s {
+      "and" => Logical::And(and()),
+      "or"  => Logical::Or(or()),
+      _     => Logical::Not(not()) // "not"
+    }
+  }
+}
+
+impl fmt::Display for Logical {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Logical::And(assembly) => write!(f, "{}", assembly),
+      Logical::Or(assembly)  => write!(f, "{}", assembly),
+      Logical::Not(assembly) => write!(f, "{}", assembly),
+    }
+  }
+}
+
+struct Translator {
+  instructions: Vec<Instruction>,
+}
+
+impl Translator {
+  fn new(input: String, file_stem: &str) -> Translator {
+    let mut instructions = Vec::new();
     
-  result
-}
+    input.split('\n').for_each(|line| {
+      let instruction = match line.find("//") {
+        Some(comment_index) => line.get(..comment_index).unwrap().trim(),
+        None                => line.trim(),
+      };
 
-// Strips comments and whitespace from a line.
-fn strip_line(line: &str) -> &str {
-   match line.find("//") {
-    Some(index) => line.get(..index).unwrap().trim(),
-    None        => line.trim()
+      if !instruction.is_empty() {
+        instructions.push(Instruction::get(instruction, file_stem));
+      }
+    });
+
+    Translator { instructions }
   }
-}
 
-fn generate_output(instructions: &Vec<Instruction>, file_stem: String) -> String {
-  let mut output = String::new();
-  let mut cnt = 0;
+  fn translate(&self) -> String {
+    let mut output = String::new();
 
-  for instruction in instructions {
-    match instruction {
-      Instruction::Movement(movement) => {
-        match movement {
-          Movement::Push(segment, val) => {
-            match segment {
-              Segment::Argument => output.push_str(&push_argument(val)),
-              Segment::Local    => output.push_str(&push_local(val)),
-              Segment::Static   => output.push_str(&push_static(val, &file_stem)),
-              Segment::Constant => output.push_str(&push_constant(val)),
-              Segment::This     => output.push_str(&push_this(val)),
-              Segment::That     => output.push_str(&push_that(val)),
-              Segment::Pointer  => {
-                if val == "0" {
-                  output.push_str(push_this_pointer());
-                } else {
-                  output.push_str(push_that_pointer());
-                }
-                
-              },
-              Segment::Temp     => output.push_str(&push_temp(val)),
-            }
-          },
-          Movement::Pop(segment, val) => {
-            match segment {
-              Segment::Argument => output.push_str(&pop_argument(val)),
-              Segment::Local    => output.push_str(&pop_local(val)),
-              Segment::Static   => output.push_str(&pop_static(val, &file_stem)),
-              Segment::This     => output.push_str(&pop_this(val)),
-              Segment::That     => output.push_str(&pop_that(val)),
-              Segment::Pointer  => {
-                if val == "0" {
-                  output.push_str(pop_this_pointer());
-                } else {
-                  output.push_str(pop_that_pointer());
-                }
-              },
-              Segment::Temp     => output.push_str(&pop_temp(val)),
-              _ => continue,
-            }
-          }
-        }
-      },
-      Instruction::Calculation(calculation) => {
-        match calculation {
-          Calculation::Arithmetic(arithmetic) => {
-            match arithmetic {
-              Arithmetic::Add => output.push_str(add()),
-              Arithmetic::Sub => output.push_str(sub()),
-              Arithmetic::Neg => output.push_str(neg()),
-            }
-          },
-          Calculation::Comparison(comparison) => {
-            match comparison {
-              Comparison::Eq => output.push_str(&eq(cnt)),
-              Comparison::Gt => output.push_str(&gt(cnt)),
-              Comparison::Lt => output.push_str(&lt(cnt)),
-            }
-            cnt += 1;
-          },
-          Calculation::Logical(logical) => {
-            match logical {
-              Logical::And => output.push_str(and()),
-              Logical::Or  => output.push_str(or()),
-              Logical::Not => output.push_str(not()),
-            }
-          },
-        }
-      },
-    }
+    self.instructions.iter().for_each(|instruction| {
+      output.push_str(&instruction.to_string());
+    });
+
+    output
   }
-  output
 }
 
 fn push_argument(offset: &str) -> String {
@@ -350,7 +361,8 @@ M=M+1
   result
 }
 
-fn push_this_pointer() -> &'static str {
+fn push_this_pointer() -> String {
+  String::from(
 "\
 @THIS
 D=M
@@ -360,9 +372,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn push_that_pointer() -> &'static str {
+fn push_that_pointer() -> String {
+  String::from(
 "\
 @THAT
 D=M
@@ -372,6 +386,7 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
 fn push_temp(offset: &str) -> String {
@@ -516,7 +531,8 @@ M=D
   result
 }
 
-fn pop_this_pointer() -> &'static str {
+fn pop_this_pointer() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -524,16 +540,19 @@ D=M
 @THIS
 M=D
 "
+  )
 }
 
-fn pop_that_pointer() -> &'static str {
-  "\
-  @SP
-  AM=M-1
-  D=M
-  @THAT
-  M=D
-  "
+fn pop_that_pointer() -> String {
+  String::from(
+"\
+@SP
+AM=M-1
+D=M
+@THAT
+M=D
+"
+  )
 }
 
 fn pop_temp(offset: &str) -> String {
@@ -569,7 +588,8 @@ M=D
 ", val, file_stem)
 }
 
-fn add() -> &'static str {
+fn add() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -583,9 +603,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn sub() -> &'static str {
+fn sub() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -599,9 +621,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn neg() -> &'static str {
+fn neg() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -612,9 +636,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn and() -> &'static str {
+fn and() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -628,9 +654,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn or() -> &'static str {
+fn or() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -644,9 +672,11 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn not() -> &'static str {
+fn not() -> String {
+  String::from(
 "\
 @SP
 AM=M-1
@@ -657,9 +687,10 @@ M=D
 @SP
 M=M+1
 "
+  )
 }
 
-fn eq(cnt: i32) -> String {
+unsafe fn eq(cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -689,7 +720,7 @@ M=M+1
 ", cnt, cnt, cnt, cnt)
 }
 
-fn gt(cnt: i32) -> String {
+unsafe fn gt(cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -719,7 +750,7 @@ M=M+1
 ", cnt, cnt, cnt, cnt)
 }
 
-fn lt(cnt: i32) -> String {
+unsafe fn lt(cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -751,14 +782,10 @@ M=M+1
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
-  // let output = translate(input);
-  // fs::write(config.output_filename, output)?;
 
-  let instructions = get_instructions(input);
+  let translator = Translator::new(input, &config.file_stem);
 
-  let output = generate_output(&instructions, config.file_stem);
-
-  fs::write(config.output_filename, output)?;
+  fs::write(config.output_filename, translator.translate())?;
 
   Ok(())
 }
