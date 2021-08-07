@@ -50,6 +50,7 @@ impl Config {
 enum Instruction {
   Movement(Movement),
   Calculation(Calculation),
+  Branch(Branch),
 }
 
 impl Instruction {
@@ -57,11 +58,20 @@ impl Instruction {
     match s.find(" ") {
       Some(_) => {
         let mut parsed = s.split(" ");
-        let mv = parsed.next().unwrap();
-        let seg = parsed.next().unwrap();
-        let val = parsed.next().unwrap();
+        let declaration = parsed.next().unwrap();
 
-        Instruction::Movement(Movement::get(mv, seg, val, file_stem))
+        match declaration {
+          "push" | "pop" => {
+            let seg = parsed.next().unwrap();
+            let val = parsed.next().unwrap();
+
+            Instruction::Movement(Movement::get(declaration, seg, val, file_stem))
+          },
+          _ => {
+            let label = parsed.next().unwrap();
+            Instruction::Branch(Branch::get(declaration, label))
+          }  
+        }
       },
       None => unsafe { Instruction::Calculation(Calculation::get(s)) }
     }
@@ -73,6 +83,7 @@ impl fmt::Display for Instruction {
     match self {
       Instruction::Movement(movement)       => movement.fmt(f),
       Instruction::Calculation(calculation) => calculation.fmt(f),
+      Instruction::Branch(branch)           => branch.fmt(f),
     }
   }
 }
@@ -244,6 +255,35 @@ impl fmt::Display for Logical {
       Logical::And(assembly) => write!(f, "{}", assembly),
       Logical::Or(assembly)  => write!(f, "{}", assembly),
       Logical::Not(assembly) => write!(f, "{}", assembly),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Branch {
+  Label(String),
+  Conditional(String),
+  Unconditional(String)
+}
+
+impl Branch {
+  fn get(s: &str, label: &str) -> Branch {
+    let branch = match s {
+      "label"   => Branch::Label(format!("({})\n", label)),
+      "if-goto" => Branch::Conditional(if_goto(label)),
+      _         => Branch::Unconditional(goto(label)),    // val
+    };
+
+    branch
+  }
+}
+
+impl fmt::Display for Branch {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Branch::Label(assembly) => write!(f, "{}", assembly),
+      Branch::Conditional(assembly) => write!(f, "{}", assembly),
+      Branch::Unconditional(assembly) => write!(f, "{}", assembly),
     }
   }
 }
@@ -699,7 +739,7 @@ D=M
 @SP
 AM=M-1
 D=M-D
-@TRUE{}
+@TRUE.{}
 D;JEQ
 D=0
 @SP
@@ -707,16 +747,16 @@ A=M
 M=D
 @SP
 M=M+1
-@END{}
+@END.{}
 0;JMP
-(TRUE{})
+(TRUE.{})
 D=-1
 @SP
 A=M
 M=D
 @SP
 M=M+1
-(END{})
+(END.{})
 ", cnt, cnt, cnt, cnt)
 }
 
@@ -729,7 +769,7 @@ D=M
 @SP
 AM=M-1
 D=M-D
-@TRUE{}
+@TRUE.{}
 D;JGT
 D=0
 @SP
@@ -737,16 +777,16 @@ A=M
 M=D
 @SP
 M=M+1
-@END{}
+@END.{}
 0;JMP
-(TRUE{})
+(TRUE.{})
 D=-1
 @SP
 A=M
 M=D
 @SP
 M=M+1
-(END{})
+(END.{})
 ", cnt, cnt, cnt, cnt)
 }
 
@@ -759,7 +799,7 @@ D=M
 @SP
 AM=M-1
 D=M-D
-@TRUE{}
+@TRUE.{}
 D;JLT
 D=0
 @SP
@@ -767,17 +807,36 @@ A=M
 M=D
 @SP
 M=M+1
-@END{}
+@END.{}
 0;JMP
-(TRUE{})
+(TRUE.{})
 D=-1
 @SP
 A=M
 M=D
 @SP
 M=M+1
-(END{})
+(END.{})
 ", cnt, cnt, cnt, cnt)
+}
+
+fn if_goto(label: &str) -> String {
+  format!(
+"\
+@SP
+AM=M-1
+D=M
+@{}
+D;JNE
+", label)
+}
+
+fn goto(label: &str) -> String {
+  format!(
+"\
+@{}
+0;JMP
+", label)
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
