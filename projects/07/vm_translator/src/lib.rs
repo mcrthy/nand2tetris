@@ -839,6 +839,84 @@ fn goto(label: &str) -> String {
 ", label)
 }
 
+fn call(f: &str, n_args: i32, cnt: i32) -> String {
+  format!(
+"\
+// generate a return address
+// and push it onto the stack
+@{}
+D=A
+@SP
+A=M
+M=D
+@SP
+M=M+1
+
+// push the LCL of the caller
+// onto the stack
+@LCL
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+
+// push the ARG of the caller
+// onto the stack
+@ARG
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+
+// push the THIS of the caller
+// onto the stack
+@THIS
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+
+// push the THAT of the caller
+// onto the stack
+@THAT
+D=M
+@SP
+A=M
+M=D
+@SP
+M=M+1
+
+// reposition ARG
+@SP
+D=M
+@5
+D=D-A
+@{}
+D=D-A
+@LCL
+M=D
+
+// reposition LCL
+@SP
+D=M
+@LCL
+M=D
+
+// transfer controll to callee
+@{}
+0;JMP
+
+// inject return address label into the code
+({})
+", cnt, n_args, f, cnt)
+}
+
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
   let input = fs::read_to_string(config.input_filename)?;
 
