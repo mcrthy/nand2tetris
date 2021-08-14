@@ -839,7 +839,7 @@ fn goto(label: &str) -> String {
 ", label)
 }
 
-fn call(f: &str, n_args: i32, cnt: i32) -> String {
+fn f_call(f: &str, n_args: i32, cnt: i32) -> String {
   format!(
 "\
 // generate a return address
@@ -915,6 +915,18 @@ M=D
 // inject return address label into the code
 ({})
 ", cnt, n_args, f, cnt)
+}
+
+fn f_decl(f: &str, n_vars: i32) -> String {
+  let mut result = String::new();
+
+  result.push_str(&format!("({})\n", f));
+
+  for _ in 0..n_vars {
+    result.push_str(&push_constant("0"));
+  }
+
+  result
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
