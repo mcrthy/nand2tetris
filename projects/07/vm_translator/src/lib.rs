@@ -322,10 +322,9 @@ impl Translator {
 }
 
 fn push_argument(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @ARG
 A=M+D
@@ -335,17 +334,13 @@ A=M
 M=D
 @SP
 M=M+1
-"
-  );
-
-  result
+", offset)
 }
 
 fn push_local(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @LCL
 A=M+D
@@ -355,17 +350,13 @@ A=M
 M=D
 @SP
 M=M+1
-"
-  );
-    
-  result
+", offset)
 }
 
 fn push_this(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @THIS
 A=M+D
@@ -375,17 +366,13 @@ A=M
 M=D
 @SP
 M=M+1
-"
-  );
-    
-  result
+", offset)
 }
 
 fn push_that(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @THAT
 A=M+D
@@ -395,10 +382,7 @@ A=M
 M=D
 @SP
 M=M+1
-"
-  );
-    
-  result
+", offset)
 }
 
 fn push_this_pointer() -> String {
@@ -430,10 +414,9 @@ M=M+1
 }
 
 fn push_temp(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @5
 A=A+D
@@ -443,51 +426,39 @@ A=M
 M=D
 @SP
 M=M+1
-"
-  );
-    
-  result
+", offset)
 }
 
 fn push_constant(val: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", val));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @SP
 A=M
 M=D
 @SP
 M=M+1
-"
-  );
-
-  result
+", val)
 }
 
 fn push_static(val: &str, file_stem: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}.{}\n", val, file_stem));
-  result.push_str(
+  format!(
 "\
+@{}.{}
 D=M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-"
-  );
-
-  result
+", val, file_stem)
 }
 
 fn pop_argument(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @ARG
 D=D+M
@@ -499,17 +470,13 @@ D=M
 @R13
 A=M
 M=D
-"
-  );
-
-  result
+", offset)
 }
 
 fn pop_local(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @LCL
 D=D+M
@@ -521,17 +488,13 @@ D=M
 @R13
 A=M
 M=D
-"
-  );
-
-  result
+", offset)
 }
 
 fn pop_this(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @THIS
 D=D+M
@@ -543,17 +506,13 @@ D=M
 @R13
 A=M
 M=D
-"
-  );
-
-  result
+", offset)
 }
 
 fn pop_that(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @THAT
 D=D+M
@@ -565,10 +524,7 @@ D=M
 @R13
 A=M
 M=D
-"
-  );
-
-  result
+", offset)
 }
 
 fn pop_this_pointer() -> String {
@@ -596,10 +552,9 @@ M=D
 }
 
 fn pop_temp(offset: &str) -> String {
-  let mut result = String::new();
-  result.push_str(&format!("@{}\n", offset));
-  result.push_str(
+  format!(
 "\
+@{}
 D=A
 @5
 D=D+A
@@ -611,10 +566,7 @@ D=M
 @R13
 A=M
 M=D
-"
-  );
-
-  result
+", offset)
 }
 
 fn pop_static(val: &str, file_stem: &str) -> String {
