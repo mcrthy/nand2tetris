@@ -99,37 +99,37 @@ impl Movement {
     match mv {
       "push" => 
         Movement::Push(match seg {
-          "argument" => push_argument(val),
-          "local"    => push_local(val),
+          "argument" => push_variable("ARG", val),
+          "local"    => push_variable("LCL", val),
           "static"   => push_static(val, &file_stem),
-          "constant" => push_constant(val),
-          "this"     => push_this(val),
-          "that"     => push_that(val),
+          "constant" => push_value(val),
+          "this"     => push_variable("THIS", val),
+          "that"     => push_variable("THAT", val),
           "pointer"  => {
             if val == "0" {
-              push_this_pointer()
+              push_value("THIS")
             } else {
-              push_that_pointer()
+              push_value("THAT")
             }    
               },
-          "temp"     => push_temp(val),
+          "temp"     => push_variable("5", val),
           _          => String::new(),
         }),
       _      =>                                     // "pop"
         Movement::Pop(match seg {
-          "argument" => pop_argument(val),
-          "local"    => pop_local(val),
+          "argument" => pop_variable("ARG", val),
+          "local"    => pop_variable("LCL", val),
           "static"   => pop_static(val, &file_stem),
-          "this"     => pop_this(val),
-          "that"     => pop_that(val),
+          "this"     => pop_variable("THIS", val),
+          "that"     => pop_variable("THAT", val),
           "pointer"  => {
             if val == "0" {
-              pop_this_pointer()
+              pop_pointer("THIS")
             } else {
-              pop_that_pointer()
+              pop_pointer("THAT")
             }
           },
-          "temp"    => pop_temp(val),
+          "temp"    => pop_variable("5", val),
           _         => String::new(),
         }),
     }
@@ -182,9 +182,9 @@ enum Arithmetic {
 impl Arithmetic {
   fn get(s: &str) -> Arithmetic {
     match s {
-      "add" => Arithmetic::Add(add()),
-      "sub" => Arithmetic::Sub(sub()),
-      _     => Arithmetic::Neg(neg())  // "neg"
+      "add" => Arithmetic::Add(binary_op("ADD")),
+      "sub" => Arithmetic::Sub(binary_op("SUB")),
+      _     => Arithmetic::Neg(unary_op("NEG"))  // "neg"
     }
   }
 }
@@ -211,9 +211,9 @@ impl Comparison {
     static mut COUNT: i32 = 0;
 
      let comparison = match s {
-      "eq" => Comparison::Eq(eq(COUNT)),
-      "gt" => Comparison::Gt(gt(COUNT)),
-      _    => Comparison::Lt(lt(COUNT)), // "lt"
+      "eq" => Comparison::Eq(compare("EQ", COUNT)),
+      "gt" => Comparison::Gt(compare("GT", COUNT)),
+      _    => Comparison::Lt(compare("LT", COUNT)), // "lt"
     };
 
     COUNT += 1;
@@ -242,9 +242,9 @@ enum Logical {
 impl Logical {
   fn get(s: &str) -> Logical {
     match s {
-      "and" => Logical::And(and()),
-      "or"  => Logical::Or(or()),
-      _     => Logical::Not(not()) // "not"
+      "and" => Logical::And(binary_op("AND")),
+      "or"  => Logical::Or(binary_op("OR")),
+      _     => Logical::Not(unary_op("NOT")) // "not"
     }
   }
 }
@@ -321,125 +321,43 @@ impl Translator {
   }
 }
 
-fn push_argument(offset: &str) -> String {
+fn push_variable(v_type: &str, offset: &str) -> String {
+  let register = match v_type {
+    "ARG" | "LCL" | "THIS" | "THAT" => "M",
+    _                               => "A",   // temp
+  };
+
   format!(
 "\
 @{}
 D=A
-@ARG
-A=M+D
+@{}
+A={}+D
 D=M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-", offset)
+", offset, register, v_type)
 }
 
-fn push_local(offset: &str) -> String {
+fn push_value(val: &str) -> String {
+  let register = match val {
+    "THIS" | "THAT" => "M",
+    _               => "A",   // constant
+  };
+
   format!(
 "\
 @{}
-D=A
-@LCL
-A=M+D
-D=M
+D={}
 @SP
 A=M
 M=D
 @SP
 M=M+1
-", offset)
-}
-
-fn push_this(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@THIS
-A=M+D
-D=M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-", offset)
-}
-
-fn push_that(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@THAT
-A=M+D
-D=M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-", offset)
-}
-
-fn push_this_pointer() -> String {
-  String::from(
-"\
-@THIS
-D=M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn push_that_pointer() -> String {
-  String::from(
-"\
-@THAT
-D=M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn push_temp(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@5
-A=A+D
-D=M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-", offset)
-}
-
-fn push_constant(val: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@SP
-A=M
-M=D
-@SP
-M=M+1
-", val)
+", val, register)
 }
 
 fn push_static(val: &str, file_stem: &str) -> String {
@@ -455,13 +373,18 @@ M=M+1
 ", val, file_stem)
 }
 
-fn pop_argument(offset: &str) -> String {
+fn pop_variable(v_type: &str, offset: &str) -> String {
+let register = match v_type {
+    "ARG" | "LCL" | "THIS" | "THAT" => "M",
+    _                               => "A",   // temp
+  };
+
   format!(
 "\
 @{}
 D=A
-@ARG
-D=D+M
+@{}
+D=D+{}
 @R13
 M=D
 @SP
@@ -470,103 +393,18 @@ D=M
 @R13
 A=M
 M=D
-", offset)
+", offset, register, v_type)
 }
 
-fn pop_local(offset: &str) -> String {
+fn pop_pointer(ptr: &str) -> String {
   format!(
 "\
+@SP
+AM=M-1
+D=M
 @{}
-D=A
-@LCL
-D=D+M
-@R13
 M=D
-@SP
-AM=M-1
-D=M
-@R13
-A=M
-M=D
-", offset)
-}
-
-fn pop_this(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@THIS
-D=D+M
-@R13
-M=D
-@SP
-AM=M-1
-D=M
-@R13
-A=M
-M=D
-", offset)
-}
-
-fn pop_that(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@THAT
-D=D+M
-@R13
-M=D
-@SP
-AM=M-1
-D=M
-@R13
-A=M
-M=D
-", offset)
-}
-
-fn pop_this_pointer() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=M
-@THIS
-M=D
-"
-  )
-}
-
-fn pop_that_pointer() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=M
-@THAT
-M=D
-"
-  )
-}
-
-fn pop_temp(offset: &str) -> String {
-  format!(
-"\
-@{}
-D=A
-@5
-D=D+A
-@R13
-M=D
-@SP
-AM=M-1
-D=M
-@R13
-A=M
-M=D
-", offset)
+", ptr)
 }
 
 fn pop_static(val: &str, file_stem: &str) -> String {
@@ -580,109 +418,50 @@ M=D
 ", val, file_stem)
 }
 
-fn add() -> String {
-  String::from(
+fn binary_op(op: &str) -> String {
+  let op = match op {
+    "ADD" => "+",
+    "SUB" => "-",
+    "AND" => "&",
+    _     => "|",   // or
+  };
+
+  format!(
 "\
 @SP
 AM=M-1
 D=M
 @SP
 AM=M-1
-D=M+D
+D=M{}D
 @SP
 A=M
 M=D
 @SP
 M=M+1
-"
-  )
+", op)
 }
 
-fn sub() -> String {
-  String::from(
+fn unary_op(op: &str) -> String {
+  let op = match op {
+    "NEG" => "-",
+    _     => "!",   // not
+  };
+
+  format!(
 "\
 @SP
 AM=M-1
-D=M
-@SP
-AM=M-1
-D=M-D
+D={}M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-"
-  )
+", op)
 }
 
-fn neg() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=-M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn and() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=M
-@SP
-AM=M-1
-D=M&D
-@SP
-A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn or() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=M
-@SP
-AM=M-1
-D=M|D
-@SP
- A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn not() -> String {
-  String::from(
-"\
-@SP
-AM=M-1
-D=!M
-@SP
-A=M
-M=D
-@SP
-M=M+1
-"
-  )
-}
-
-fn eq(cnt: i32) -> String {
+fn compare(comp: &str, cnt: i32) -> String {
   format!(
 "\
 @SP
@@ -692,7 +471,7 @@ D=M
 AM=M-1
 D=M-D
 @TRUE.{}
-D;JEQ
+D;J{}
 D=0
 @SP
 A=M
@@ -709,67 +488,8 @@ M=D
 @SP
 M=M+1
 (END.{})
-", cnt, cnt, cnt, cnt)
-}
+", cnt, comp, cnt, cnt, cnt)
 
-fn gt(cnt: i32) -> String {
-  format!(
-"\
-@SP
-AM=M-1
-D=M
-@SP
-AM=M-1
-D=M-D
-@TRUE.{}
-D;JGT
-D=0
-@SP
-A=M
-M=D
-@SP
-M=M+1
-@END.{}
-0;JMP
-(TRUE.{})
-D=-1
-@SP
-A=M
-M=D
-@SP
-M=M+1
-(END.{})
-", cnt, cnt, cnt, cnt)
-}
-
-fn lt(cnt: i32) -> String {
-  format!(
-"\
-@SP
-AM=M-1
-D=M
-@SP
-AM=M-1
-D=M-D
-@TRUE.{}
-D;JLT
-D=0
-@SP
-A=M
-M=D
-@SP
-M=M+1
-@END.{}
-0;JMP
-(TRUE.{})
-D=-1
-@SP
-A=M
-M=D
-@SP
-M=M+1
-(END.{})
-", cnt, cnt, cnt, cnt)
 }
 
 fn if_goto(label: &str) -> String {
@@ -875,7 +595,7 @@ fn f_decl(f: &str, n_vars: i32) -> String {
   result.push_str(&format!("({})\n", f));
 
   for _ in 0..n_vars {
-    result.push_str(&push_constant("0"));
+    result.push_str(&push_value("0"));
   }
 
   result
