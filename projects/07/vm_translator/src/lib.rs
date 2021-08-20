@@ -339,7 +339,7 @@ A=M
 M=D
 @SP
 M=M+1
-", offset, register, v_type)
+", offset, v_type, register)
 }
 
 fn push_value(val: &str) -> String {
@@ -393,7 +393,7 @@ D=M
 @R13
 A=M
 M=D
-", offset, register, v_type)
+", offset, v_type, register)
 }
 
 fn pop_pointer(ptr: &str) -> String {
@@ -516,7 +516,7 @@ fn f_call(f: &str, n_args: i32, cnt: i32) -> String {
 "\
 // generate a return address
 // and push it onto the stack
-@{}
+@RETURN{}
 D=A
 @SP
 A=M
@@ -599,6 +599,80 @@ fn f_decl(f: &str, n_vars: i32) -> String {
   }
 
   result
+}
+
+fn f_return() -> String {
+  String::from(
+"\
+// get callee's base LCL address
+@LCL
+D=M
+
+// get the caller's return address
+// (five above LCL on the stack)
+@5
+D=D-A
+A=D
+D=M
+@R13
+M=D
+
+// pop the return value into callee's **ARG
+// (actually located inside caller function's local stack)
+@SP
+AM=M-1
+D=M
+@ARG
+A=M
+M=D
+
+// set *SP to *ARG+1, just after the return value
+@ARG
+D=M+1
+@SP
+M=D
+
+// restore *THAT for the caller
+@LCL
+D=M
+D=D-1
+A=D
+D=M
+@THAT
+M=D
+
+// restore *THIS for the caller
+@LCL
+D=M
+D=D-2
+A=D
+D=M
+@THIS
+M=D
+
+// restore *ARG for the caller
+@LCL
+D=M
+D=D-3
+A=D
+D=M
+@THIS
+M=D
+
+// restore *LCL for the caller
+@LCL
+D=M
+D=D-3
+A=D
+D=M
+@LCL
+M=D
+
+// jump to the return address
+@R13
+A=M
+0;JMP
+")
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
