@@ -51,6 +51,8 @@ enum Instruction {
   Movement(Movement),
   Calculation(Calculation),
   Branch(Branch),
+  Function(Function),
+  Return(String),
 }
 
 impl Instruction {
@@ -67,13 +69,23 @@ impl Instruction {
 
             Instruction::Movement(Movement::get(declaration, seg, val, file_stem))
           },
-          _ => {
+          "label" | "goto" | "if-goto" => {
             let label = parsed.next().unwrap();
             Instruction::Branch(Branch::get(declaration, label))
-          }  
+          },
+          _ => {
+            let statement = parsed.next().unwrap();
+            let f_name = parsed.next().unwrap();
+            let val = parsed.next().unwrap();
+
+            unsafe { Instruction::Function(Function::get(statement, f_name, val)) }
+          } 
         }
       },
-      None => unsafe { Instruction::Calculation(Calculation::get(s)) }
+      None => match s {
+        "return" => Instruction::Return(f_return()),
+        _        => unsafe { Instruction::Calculation(Calculation::get(s)) }  // calculation
+      }
     }
   }
 }
@@ -84,6 +96,8 @@ impl fmt::Display for Instruction {
       Instruction::Movement(movement)       => movement.fmt(f),
       Instruction::Calculation(calculation) => calculation.fmt(f),
       Instruction::Branch(branch)           => branch.fmt(f),
+      Instruction::Function(function)       => function.fmt(f),
+      Instruction::Return(rtn)              => write!(f, "{}", rtn),
     }
   }
 }
@@ -209,16 +223,13 @@ enum Comparison {
 impl Comparison {
   unsafe fn get(s: &str) -> Comparison {
     static mut COUNT: i32 = 0;
+    COUNT += 1;
 
-     let comparison = match s {
+    match s {
       "eq" => Comparison::Eq(compare("EQ", COUNT)),
       "gt" => Comparison::Gt(compare("GT", COUNT)),
       _    => Comparison::Lt(compare("LT", COUNT)), // "lt"
-    };
-
-    COUNT += 1;
-
-    comparison
+    }
   }
 }
 
@@ -268,13 +279,11 @@ enum Branch {
 
 impl Branch {
   fn get(s: &str, label: &str) -> Branch {
-    let branch = match s {
+    match s {
       "label"   => Branch::Label(format!("({})\n", label)),
       "if-goto" => Branch::Conditional(if_goto(label)),
-      _         => Branch::Unconditional(goto(label)),    // val
-    };
-
-    branch
+      _         => Branch::Unconditional(goto(label)),    // "goto"
+    }
   }
 }
 
@@ -284,6 +293,33 @@ impl fmt::Display for Branch {
       Branch::Label(assembly) => write!(f, "{}", assembly),
       Branch::Conditional(assembly) => write!(f, "{}", assembly),
       Branch::Unconditional(assembly) => write!(f, "{}", assembly),
+    }
+  }
+}
+
+#[derive(Debug)]
+enum Function {
+  Call(String),
+  Declaration(String),
+}
+
+impl Function {
+  unsafe fn get(s: &str, f: &str, val: &str) -> Function {
+    static mut COUNT: i32 = 0;
+    let val = str::parse::<i32>(val).unwrap();
+
+    match s {
+      "call" => Function::Call(f_call(f, val, COUNT)),
+      _      => Function::Declaration(f_decl(f, val)),  // "function"
+    }
+  }
+}
+
+impl fmt::Display for Function {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      Function::Call(assembly) => write!(f, "{}", assembly),
+      Function::Declaration(assembly) => write!(f, "{}", assembly),
     }
   }
 }
